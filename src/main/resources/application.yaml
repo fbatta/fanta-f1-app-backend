@@ -1,0 +1,23 @@
+spring:
+  application:
+    name: fanta-f1-app-backend
+
+jolpica:
+  base-url: https://api.jolpi.ca/ergast/f1/
+
+open-f1:
+  base-url: https://api.openf1.org
+  api-version: v1
+
+firebase:
+  app-name: fantaf1
+  database-id: (default)
+  storage-bucket: fantaf1-beitz25.firebasestorage.app
+  project-id: fantaf1-beitz25
+  credentials-path: /credentials/serviceAccount.json
+
+management:
+  influx:
+    metrics:
+      export:
+        enabled: false
