@@ -17,7 +17,7 @@ import org.springframework.stereotype.Repository
  * @property defaultFirestoreInstance The Firestore instance used for database operations.
  */
 @Repository
-class DriversRepository(
+class DriverRepository(
     private val defaultFirestoreInstance: Firestore
 ) {
     private val collectionName = "drivers"
@@ -49,7 +49,7 @@ class DriversRepository(
         }
         return snapshot.toObject(Driver::class.java)
     }
-    
+
     /**
      * Finds a driver by their acronym.
      *

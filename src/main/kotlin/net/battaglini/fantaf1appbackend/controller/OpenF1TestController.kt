@@ -4,7 +4,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import net.battaglini.fantaf1appbackend.client.OpenF1Client
 import net.battaglini.fantaf1appbackend.model.Race
-import net.battaglini.fantaf1appbackend.model.openf1.OpenF1MeetingsResponse.Companion.toRaceResponse
+import net.battaglini.fantaf1appbackend.model.openf1.OpenF1MeetingResponse.Companion.toRaceResponse
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController

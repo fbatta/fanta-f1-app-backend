@@ -2,7 +2,7 @@ package net.battaglini.fantaf1appbackend.model.openf1
 
 import com.fasterxml.jackson.annotation.JsonProperty
 
-data class OpenF1DriversResponse(
+data class OpenF1DriverResponse(
     @JsonProperty("broadcast_name")
     val broadcastName: String,
     @JsonProperty("driver_number")

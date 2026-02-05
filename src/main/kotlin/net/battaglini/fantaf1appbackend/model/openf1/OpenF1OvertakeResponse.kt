@@ -5,7 +5,7 @@ import kotlinx.datetime.LocalDateTime
 import net.battaglini.fantaf1appbackend.deserializer.OpenF1TimestampDeserializer
 import tools.jackson.databind.annotation.JsonDeserialize
 
-data class OpenF1OvertakesResponse(
+data class OpenF1OvertakeResponse(
     @JsonDeserialize(using = OpenF1TimestampDeserializer::class)
     val date: LocalDateTime,
     @JsonProperty("meeting_key")

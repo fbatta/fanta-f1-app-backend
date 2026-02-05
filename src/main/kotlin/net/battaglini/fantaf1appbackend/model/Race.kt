@@ -5,7 +5,10 @@ import tools.jackson.databind.annotation.JsonSerialize
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
-data class RaceResponse @OptIn(ExperimentalTime::class) constructor(
+@OptIn(ExperimentalTime::class)
+data class Race(
+    val raceId: String,
+    val openF1MeetingKey: Int,
     val raceName: String,
     @JsonSerialize(using = KotlinInstantSerializer::class)
     val dateStart: Instant,

@@ -22,7 +22,7 @@ class OpenF1Client(
         meetingKey: Int? = null,
         acronym: String? = null,
         driverNumber: Int? = null
-    ): Flow<OpenF1DriversResponse> {
+    ): Flow<OpenF1DriverResponse> {
         return webClient
             .get()
             .uri { uriBuilder ->
@@ -42,7 +42,7 @@ class OpenF1Client(
         meetingKey: Int?,
         year: Int?,
         circuitKey: Int?
-    ): Flow<OpenF1MeetingsResponse> {
+    ): Flow<OpenF1MeetingResponse> {
         if (meetingKey == null && year == null && circuitKey == null) {
             throw OpenF1ClientRequestException("One of meetingKey, year or circuitKey are required")
         }
@@ -108,7 +108,7 @@ class OpenF1Client(
         sessionKey: Int? = null,
         overtakingDriverNumber: Int? = null,
         overtakenDriverNumber: Int? = null
-    ): Flow<OpenF1OvertakesResponse> {
+    ): Flow<OpenF1OvertakeResponse> {
         if (meetingKey == null && sessionKey == null && overtakenDriverNumber == null && overtakingDriverNumber == null) {
             throw OpenF1ClientRequestException("One of meetingKey, sessionKey, overtakenDriverNumber or overtakingDriverNumber are required")
         }

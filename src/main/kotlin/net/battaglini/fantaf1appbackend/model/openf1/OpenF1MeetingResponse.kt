@@ -12,7 +12,7 @@ import tools.jackson.databind.annotation.JsonDeserialize
 import kotlin.time.ExperimentalTime
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-data class OpenF1MeetingsResponse(
+data class OpenF1MeetingResponse(
     @JsonProperty("circuit_key")
     val circuitKey: Int,
     @JsonProperty("meeting_name")
@@ -34,7 +34,7 @@ data class OpenF1MeetingsResponse(
 ) {
     companion object {
         @OptIn(ExperimentalTime::class)
-        fun OpenF1MeetingsResponse.toRaceResponse(raceId: String = meetingKey.toString()): Race = Race(
+        fun OpenF1MeetingResponse.toRaceResponse(raceId: String = meetingKey.toString()): Race = Race(
             raceId = raceId,
             openF1MeetingKey = meetingKey,
             raceName = meetingName,
