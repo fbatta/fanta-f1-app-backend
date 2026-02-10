@@ -7,7 +7,7 @@ import kotlinx.datetime.UtcOffset
 import kotlinx.datetime.toInstant
 import net.battaglini.fantaf1appbackend.deserializer.OpenF1GmtOffsetDeserializer
 import net.battaglini.fantaf1appbackend.deserializer.OpenF1TimestampDeserializer
-import net.battaglini.fantaf1appbackend.model.Race
+import net.battaglini.fantaf1appbackend.model.RaceWeekend
 import tools.jackson.databind.annotation.JsonDeserialize
 import kotlin.time.ExperimentalTime
 
@@ -34,12 +34,16 @@ data class OpenF1MeetingResponse(
 ) {
     companion object {
         @OptIn(ExperimentalTime::class)
-        fun OpenF1MeetingResponse.toRaceResponse(raceId: String = meetingKey.toString()): Race = Race(
+        fun OpenF1MeetingResponse.toRaceResponse(
+            raceId: String = meetingKey.toString(),
+            sessions: List<RaceWeekend.Companion.Session> = emptyList()
+        ): RaceWeekend = RaceWeekend(
             raceId = raceId,
             openF1MeetingKey = meetingKey,
             raceName = meetingName,
             dateStart = dateStart.toInstant(gmtOffset),
-            dateEnd = dateEnd.toInstant(gmtOffset)
+            dateEnd = dateEnd.toInstant(gmtOffset),
+            sessions = sessions
         )
     }
 }

@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-data class OpenF1SessionResultResponse(
+data class OpenF1QualifyingSessionResultResponse(
     val position: Int,
     @JsonProperty("driver_number")
     val driverNumber: Int,
@@ -14,8 +14,8 @@ data class OpenF1SessionResultResponse(
     val dns: Boolean,
     val dsq: Boolean,
     @JsonProperty("gap_to_leader")
-    val gapToLeader: Double,
-    val duration: Double,
+    val gapToLeader: List<Double>,
+    val duration: List<Double>,
     @JsonProperty("meeting_key")
     val meetingKey: Int,
     @JsonProperty("session_key")

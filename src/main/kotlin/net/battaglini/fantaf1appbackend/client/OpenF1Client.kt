@@ -1,14 +1,26 @@
 package net.battaglini.fantaf1appbackend.client
 
 import kotlinx.coroutines.flow.Flow
+import net.battaglini.fantaf1appbackend.configuration.CacheConfiguration
+import net.battaglini.fantaf1appbackend.configuration.CacheConfiguration.Companion.MEETING_SESSIONS_CACHE
 import net.battaglini.fantaf1appbackend.configuration.OpenF1ApiProperties
+import net.battaglini.fantaf1appbackend.enums.openf1.OpenF1SessionName
 import net.battaglini.fantaf1appbackend.enums.openf1.OpenF1TyreCompound
 import net.battaglini.fantaf1appbackend.model.openf1.*
+import org.springframework.cache.annotation.Cacheable
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.bodyToFlow
 import org.springframework.web.util.UriBuilder
 
+/**
+ * Client for interacting with the OpenF1 API.
+ *
+ * This client provides methods to retrieve various F1 data such as drivers, races, sessions,
+ * results, overtakes, stints, and laps.
+ *
+ * @property openF1ApiProperties Configuration properties for the OpenF1 API.
+ */
 @Component
 class OpenF1Client(
     openF1ApiProperties: OpenF1ApiProperties
@@ -17,6 +29,16 @@ class OpenF1Client(
         .baseUrl("${openF1ApiProperties.baseUrl}/${openF1ApiProperties.apiVersion}")
         .build()
 
+    /**
+     * Retrieves a list of drivers based on the provided criteria.
+     *
+     * @param sessionKey The session key to filter by. Defaults to "latest" if null.
+     * @param meetingKey The meeting key to filter by. Defaults to "latest" if null.
+     * @param acronym The driver's acronym to filter by.
+     * @param driverNumber The driver's number to filter by.
+     * @return A [Flow] emitting [OpenF1DriverResponse] objects.
+     */
+    @Cacheable(CacheConfiguration.DRIVERS_CACHE)
     suspend fun getDrivers(
         sessionKey: Int? = null,
         meetingKey: Int? = null,
@@ -38,6 +60,16 @@ class OpenF1Client(
             .bodyToFlow()
     }
 
+    /**
+     * Retrieves a list of races (meetings) based on the provided criteria.
+     *
+     * @param meetingKey The meeting key to filter by.
+     * @param year The year to filter by.
+     * @param circuitKey The circuit key to filter by.
+     * @return A [Flow] emitting [OpenF1MeetingResponse] objects.
+     * @throws OpenF1ClientRequestException If none of the parameters are provided.
+     */
+    @Cacheable(CacheConfiguration.MEETINGS_CACHE_NAME)
     suspend fun getRaces(
         meetingKey: Int?,
         year: Int?,
@@ -61,13 +93,25 @@ class OpenF1Client(
             .bodyToFlow()
     }
 
+    /**
+     * Retrieves a list of sessions based on the provided criteria.
+     *
+     * @param meetingKey The meeting key to filter by.
+     * @param sessionKey The session key to filter by.
+     * @param sessionName The name of the session to filter by.
+     * @param year The year to filter by.
+     * @return A [Flow] emitting [OpenF1SessionResponse] objects.
+     * @throws OpenF1ClientRequestException If none of the parameters are provided.
+     */
+    @Cacheable(MEETING_SESSIONS_CACHE)
     suspend fun getSessions(
         meetingKey: Int? = null,
         sessionKey: Int? = null,
+        sessionName: OpenF1SessionName? = null,
         year: Int? = null
     ): Flow<OpenF1SessionResponse> {
-        if (meetingKey == null && year == null) {
-            throw OpenF1ClientRequestException("One of meetingKey, sessionKey or year are required")
+        if (sessionKey == null && meetingKey == null && year == null && sessionName == null) {
+            throw OpenF1ClientRequestException("One of meetingKey, sessionKey, year or sessionName are required")
         }
 
         return webClient
@@ -76,6 +120,7 @@ class OpenF1Client(
                 uriBuilder.path("/sessions")
                 addMeetingAndSessionKeyParams(uriBuilder, meetingKey, sessionKey)
                 year?.also { year -> uriBuilder.queryParam("year", year) }
+                sessionName?.also { sessionName -> uriBuilder.queryParam("session_name", sessionName.toString()) }
 
                 uriBuilder.build()
             }
@@ -83,10 +128,18 @@ class OpenF1Client(
             .bodyToFlow()
     }
 
-    suspend fun getResults(
+    /**
+     * Retrieves the results of a session.
+     *
+     * @param meetingKey The meeting key to filter by.
+     * @param sessionKey The session key to filter by.
+     * @return A [Flow] emitting [OpenF1SessionResultResponse] objects.
+     * @throws OpenF1ClientRequestException If neither meetingKey nor sessionKey is provided.
+     */
+    suspend fun <K> getResults(
         meetingKey: Int? = null,
         sessionKey: Int? = null
-    ): Flow<OpenF1SessionResultResponse> {
+    ): Flow<K> {
         if (meetingKey == null && sessionKey == null) {
             throw OpenF1ClientRequestException("One of meetingKey or sessionKey are required")
         }
@@ -103,6 +156,16 @@ class OpenF1Client(
             .bodyToFlow()
     }
 
+    /**
+     * Retrieves overtake data based on the provided criteria.
+     *
+     * @param meetingKey The meeting key to filter by.
+     * @param sessionKey The session key to filter by.
+     * @param overtakingDriverNumber The number of the overtaking driver.
+     * @param overtakenDriverNumber The number of the overtaken driver.
+     * @return A [Flow] emitting [OpenF1OvertakeResponse] objects.
+     * @throws OpenF1ClientRequestException If none of the parameters are provided.
+     */
     suspend fun getOvertakes(
         meetingKey: Int? = null,
         sessionKey: Int? = null,
@@ -137,6 +200,16 @@ class OpenF1Client(
             .bodyToFlow()
     }
 
+    /**
+     * Retrieves stint data based on the provided criteria.
+     *
+     * @param meetingKey The meeting key to filter by.
+     * @param sessionKey The session key to filter by.
+     * @param driverNumber The driver number to filter by.
+     * @param compound The tyre compound to filter by.
+     * @return A [Flow] emitting [OpenF1StintResponse] objects.
+     * @throws OpenF1ClientRequestException If none of the parameters are provided.
+     */
     suspend fun getStints(
         meetingKey: Int? = null,
         sessionKey: Int? = null,
@@ -161,6 +234,15 @@ class OpenF1Client(
             .bodyToFlow()
     }
 
+    /**
+     * Retrieves lap data based on the provided criteria.
+     *
+     * @param meetingKey The meeting key to filter by.
+     * @param sessionKey The session key to filter by.
+     * @param driverNumber The driver number to filter by.
+     * @return A [Flow] emitting [OpenF1LapResponse] objects.
+     * @throws OpenF1ClientRequestException If none of the parameters are provided.
+     */
     suspend fun getLaps(
         meetingKey: Int? = null,
         sessionKey: Int? = null,
@@ -176,6 +258,26 @@ class OpenF1Client(
                 uriBuilder.path("/laps")
                 addMeetingAndSessionKeyParams(uriBuilder, meetingKey, sessionKey)
                 driverNumber?.also { driverNumber -> uriBuilder.queryParam("driver_number", driverNumber) }
+
+                uriBuilder.build()
+            }
+            .retrieve()
+            .bodyToFlow()
+    }
+
+    suspend fun getStartingGrid(
+        meetingKey: Int? = null,
+        sessionKey: Int? = null,
+    ): Flow<OpenF1StartingGridResponse> {
+        if (meetingKey == null && sessionKey == null) {
+            throw OpenF1ClientRequestException("One of meetingKey or sessionKey are required")
+        }
+
+        return webClient
+            .get()
+            .uri { uriBuilder ->
+                uriBuilder.path("/starting_grid")
+                addMeetingAndSessionKeyParams(uriBuilder, meetingKey, sessionKey)
 
                 uriBuilder.build()
             }

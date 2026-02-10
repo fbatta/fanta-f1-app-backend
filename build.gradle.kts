@@ -1,5 +1,6 @@
 val firebaseAdminVersion = "9.7.0"
 val kotlinxDateTimeVersion = "0.7.1"
+val caffeineVersion = "3.2.3"
 
 plugins {
     kotlin("jvm") version "2.3.0"
@@ -29,12 +30,14 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-security-oauth2-resource-server")
     implementation("org.springframework.boot:spring-boot-starter-webclient")
     implementation("org.springframework.boot:spring-boot-starter-webflux")
+    implementation("org.springframework.boot:spring-boot-starter-cache")
     implementation("io.projectreactor.kotlin:reactor-kotlin-extensions")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
     implementation("tools.jackson.module:jackson-module-kotlin")
     implementation("com.google.firebase:firebase-admin:$firebaseAdminVersion")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:$kotlinxDateTimeVersion")
+    implementation("com.github.ben-manes.caffeine:caffeine:$caffeineVersion")
     runtimeOnly("io.micrometer:micrometer-registry-influx")
     testImplementation("org.springframework.boot:spring-boot-starter-actuator-test")
     testImplementation("org.springframework.boot:spring-boot-starter-quartz-test")

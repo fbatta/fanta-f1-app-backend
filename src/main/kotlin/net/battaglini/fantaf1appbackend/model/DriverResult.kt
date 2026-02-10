@@ -1,17 +1,12 @@
 package net.battaglini.fantaf1appbackend.model
 
-import kotlin.time.Duration
+import net.battaglini.fantaf1appbackend.enums.RaceWeekendSessionType
 
-data class DriverResult(
-    val raceId: String,
-    val driverId: String,
-    val driverNumber: Int,
-    val driverAcronym: String,
-    val bestRaceTime: Duration,
-    val finalPosition: Int?,
-    val dns: Boolean,
-    val dnf: Boolean,
-    val dsq: Boolean,
-    val numberOfOvertakes: Int,
-    val maximumSpeedAtTrap: Double
+open class DriverResult(
+    open val raceId: String,
+    open val driverId: String,
+    open val sessionId: String,
+    open val sessionType: RaceWeekendSessionType,
+    open val driverNumber: Int,
+    open val driverAcronym: String
 )
