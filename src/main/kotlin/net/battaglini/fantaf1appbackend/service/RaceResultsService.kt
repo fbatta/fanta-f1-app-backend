@@ -34,9 +34,10 @@ class RaceResultsService(
                 return emptyFlow()
             }
 
-            val raceResults = openF1Client.getResults<OpenF1SessionResultResponse>(sessionKey = sessionKey).toList()
+            val raceResults =
+                openF1Client.getResults<OpenF1SessionResultResponse>(sessionKeys = listOf(sessionKey)).toList()
             val startingGrid = openF1Client.getStartingGrid(sessionKey = sessionKey).toList()
-            return driverService.getDriversInSession(sessionKey)
+            return driverService.getDriversInSessions(listOf(sessionKey))
                 .map { driver ->
                     getDriverResultForRace(sessionKey, driver, startingGrid, raceResults, raceWeekend, session)
                 }

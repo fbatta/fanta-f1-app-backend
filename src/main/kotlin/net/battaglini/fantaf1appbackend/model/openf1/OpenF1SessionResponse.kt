@@ -3,10 +3,13 @@ package net.battaglini.fantaf1appbackend.model.openf1
 import com.fasterxml.jackson.annotation.JsonProperty
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.UtcOffset
+import kotlinx.datetime.toInstant
 import net.battaglini.fantaf1appbackend.deserializer.OpenF1GmtOffsetDeserializer
 import net.battaglini.fantaf1appbackend.deserializer.OpenF1TimestampDeserializer
 import net.battaglini.fantaf1appbackend.enums.openf1.OpenF1SessionName
+import net.battaglini.fantaf1appbackend.enums.openf1.OpenF1SessionName.Companion.toRaceWeekendSessionType
 import net.battaglini.fantaf1appbackend.enums.openf1.OpenF1SessionType
+import net.battaglini.fantaf1appbackend.model.RaceWeekend
 import tools.jackson.databind.annotation.JsonDeserialize
 
 data class OpenF1SessionResponse(
@@ -30,4 +33,15 @@ data class OpenF1SessionResponse(
     @JsonDeserialize(using = OpenF1GmtOffsetDeserializer::class)
     val gmtOffset: UtcOffset,
     val year: Int
-)
+) {
+    companion object {
+        fun OpenF1SessionResponse.toRaceWeekendSession(sessionId: String): RaceWeekend.Companion.Session =
+            RaceWeekend.Companion.Session(
+                sessionId = sessionId,
+                openF1SessionKey = sessionKey,
+                sessionType = sessionName.toRaceWeekendSessionType(),
+                dateStart = dateStart.toInstant(gmtOffset),
+                dateEnd = dateEnd.toInstant(gmtOffset)
+            )
+    }
+}

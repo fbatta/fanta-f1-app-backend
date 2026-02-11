@@ -16,11 +16,11 @@ import kotlin.time.Clock
  *
  * This repository provides methods to retrieve lobbies based on year, ID, or owner ID.
  *
- * @property defaultFirestoreInstance The Firestore instance used for database operations.
+ * @property firestoreInstance The Firestore instance used for database operations.
  */
 @Repository
 class LobbyRepository(
-    private val defaultFirestoreInstance: Firestore
+    private val firestoreInstance: Firestore
 ) {
     private val collectionName = "lobbies"
 
@@ -36,7 +36,7 @@ class LobbyRepository(
         ).year
     ): Flow<Lobby> {
         val querySnapshot = withContext(Dispatchers.IO) {
-            defaultFirestoreInstance.collection(collectionName).whereEqualTo(Lobby::year.name, year).get().get()
+            firestoreInstance.collection(collectionName).whereEqualTo(Lobby::year.name, year).get().get()
         }
         return querySnapshot.map { lobby -> lobby.toObject(Lobby::class.java) }.asFlow()
     }
@@ -49,7 +49,7 @@ class LobbyRepository(
      */
     suspend fun findLobbyById(lobbyId: String): Lobby? {
         val snapshot = withContext(Dispatchers.IO) {
-            defaultFirestoreInstance.collection(collectionName).document(lobbyId).get().get()
+            firestoreInstance.collection(collectionName).document(lobbyId).get().get()
         }
         if (!snapshot.exists()) {
             return null
@@ -65,7 +65,7 @@ class LobbyRepository(
      */
     suspend fun getLobbiesByOwnerId(ownerId: String): Flow<Lobby> {
         val querySnapshot = withContext(Dispatchers.IO) {
-            defaultFirestoreInstance.collection(collectionName).whereEqualTo(Lobby::ownerId.name, ownerId).get().get()
+            firestoreInstance.collection(collectionName).whereEqualTo(Lobby::ownerId.name, ownerId).get().get()
         }
         return querySnapshot.map { lobby -> lobby.toObject(Lobby::class.java) }.asFlow()
     }

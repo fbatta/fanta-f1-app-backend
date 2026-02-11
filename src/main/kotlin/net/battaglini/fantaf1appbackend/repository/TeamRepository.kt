@@ -8,13 +8,13 @@ import kotlinx.coroutines.withContext
 import net.battaglini.fantaf1appbackend.model.Team
 
 class TeamRepository(
-    val defaultFirestoreInstance: Firestore
+    val firestoreInstance: Firestore
 ) {
     private val collectionName = "teams"
 
     suspend fun getTeamsByLobbyId(lobbyId: String): Flow<Team> {
         val querySnapshot = withContext(Dispatchers.IO) {
-            defaultFirestoreInstance.collection(collectionName).whereEqualTo(Team::lobbyId.name, lobbyId).get().get()
+            firestoreInstance.collection(collectionName).whereEqualTo(Team::lobbyId.name, lobbyId).get().get()
         }
         return querySnapshot.map { team -> team.toObject(Team::class.java) }.asFlow()
     }

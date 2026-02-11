@@ -6,6 +6,7 @@ import kotlin.time.Instant
 
 data class RaceWeekendResult(
     val raceId: String,
+    val openF1MeetingKey: Int,
     @JsonSerialize(using = KotlinInstantSerializer::class)
     val createdAt: Instant,
     @JsonSerialize(using = KotlinInstantSerializer::class)
@@ -17,6 +18,7 @@ data class RaceWeekendResult(
         data class Result(
             val driverId: String,
             val driverNumber: Int,
+            val driverAcronym: String,
             val points: Double
         )
     }

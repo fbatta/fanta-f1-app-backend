@@ -5,9 +5,11 @@ import com.google.cloud.firestore.Firestore
 import com.google.cloud.firestore.FirestoreOptions
 import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.cloud.FirestoreClient
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.context.annotation.Primary
 import org.springframework.core.io.ClassPathResource
 
 @Configuration
@@ -21,6 +23,7 @@ class FirebaseAdminConfiguration(
     }
 
     @Bean
+    @Primary
     fun defaultFirebaseApp(serviceAccountCredentials: GoogleCredentials): FirebaseApp {
         val firestoreOptions = FirestoreOptions.newBuilder()
             .setDatabaseId(firebaseProperties.databaseId)
@@ -36,7 +39,14 @@ class FirebaseAdminConfiguration(
     }
 
     @Bean
+    @Primary
     fun defaultFirestoreInstance(defaultFirebaseApp: FirebaseApp): Firestore {
         return FirestoreClient.getFirestore(defaultFirebaseApp)
+    }
+
+    @Bean
+    @Primary
+    fun defaultAuthInstance(defaultFirebaseApp: FirebaseApp): FirebaseAuth {
+        return FirebaseAuth.getInstance(defaultFirebaseApp)
     }
 }

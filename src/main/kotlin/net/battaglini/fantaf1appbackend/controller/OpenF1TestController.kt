@@ -8,7 +8,10 @@ import net.battaglini.fantaf1appbackend.model.openf1.OpenF1MeetingResponse.Compa
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
+@OptIn(ExperimentalUuidApi::class)
 @RestController("/openf1")
 class OpenF1TestController(
     val openF1Client: OpenF1Client
@@ -19,6 +22,6 @@ class OpenF1TestController(
             year = year,
             meetingKey = null,
             circuitKey = null
-        ).map { it.toRaceResponse() }
+        ).map { it.toRaceResponse(raceId = Uuid.random().toString()) }
     }
 }

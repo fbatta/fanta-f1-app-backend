@@ -14,8 +14,8 @@ class DriverService(
     private val openF1Client: OpenF1Client,
     private val driverRepository: DriverRepository
 ) {
-    suspend fun getDriversInSession(sessionKey: Int): Flow<Driver> {
-        val openF1Drivers = openF1Client.getDrivers(sessionKey = sessionKey)
+    suspend fun getDriversInSessions(sessionKeys: List<Int>): Flow<Driver> {
+        val openF1Drivers = openF1Client.getDrivers(sessionKeys = sessionKeys)
         val driversInRepo = driverRepository.getDrivers()
 
         return driversInRepo.filter { driver ->

@@ -36,8 +36,9 @@ class QualifyingResultsService(
             return emptyFlow()
         }
 
-        val results = openF1Client.getResults<OpenF1QualifyingSessionResultResponse>(sessionKey = sessionKey).toList()
-        return driverService.getDriversInSession(sessionKey).map { driver ->
+        val results =
+            openF1Client.getResults<OpenF1QualifyingSessionResultResponse>(sessionKeys = listOf(sessionKey)).toList()
+        return driverService.getDriversInSessions(listOf(sessionKey)).map { driver ->
             val result = results.first { it.driverNumber == driver.driverNumber }
             DriverQualifyingResult(
                 raceId = raceWeekend.raceId,

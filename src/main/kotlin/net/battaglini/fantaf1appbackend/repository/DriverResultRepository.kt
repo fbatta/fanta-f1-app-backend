@@ -11,13 +11,13 @@ import org.springframework.stereotype.Repository
 
 @Repository
 class DriverResultRepository(
-    val defaultFirestoreInstance: Firestore
+    val firestoreInstance: Firestore
 ) {
     suspend fun <K : DriverResult> saveDriverResults(driverResults: List<K>) {
         withContext(Dispatchers.IO) {
-            defaultFirestoreInstance.runTransaction { transaction ->
+            firestoreInstance.runTransaction { transaction ->
                 driverResults.forEach { driverResult ->
-                    val docReference = defaultFirestoreInstance.collection(COLLECTION_PATH)
+                    val docReference = firestoreInstance.collection(COLLECTION_PATH)
                         .document(driverResult.raceId)
                         .collection(driverResult.sessionType.name)
                         .document(driverResult.driverId)
@@ -32,7 +32,7 @@ class DriverResultRepository(
         sessionType: RaceWeekendSessionType
     ): Flow<K> {
         val querySnapshot = withContext(Dispatchers.IO) {
-            defaultFirestoreInstance.collection(COLLECTION_PATH).document(raceId)
+            firestoreInstance.collection(COLLECTION_PATH).document(raceId)
                 .collection(sessionType.name).get().get()
         }
         return querySnapshot.map { it.toObject<K>(K::class.java) }.asFlow()

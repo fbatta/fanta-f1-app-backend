@@ -9,6 +9,7 @@ import net.battaglini.fantaf1appbackend.enums.openf1.OpenF1TyreCompound
 import net.battaglini.fantaf1appbackend.model.openf1.*
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.stereotype.Component
+import org.springframework.util.MultiValueMapAdapter
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.bodyToFlow
 import org.springframework.web.util.UriBuilder
@@ -32,25 +33,29 @@ class OpenF1Client(
     /**
      * Retrieves a list of drivers based on the provided criteria.
      *
-     * @param sessionKey The session key to filter by. Defaults to "latest" if null.
-     * @param meetingKey The meeting key to filter by. Defaults to "latest" if null.
+     * @param sessionKeys The session keys to filter by.
+     * @param meetingKey The meeting key to filter by.
      * @param acronym The driver's acronym to filter by.
      * @param driverNumber The driver's number to filter by.
      * @return A [Flow] emitting [OpenF1DriverResponse] objects.
+     * @throws OpenF1ClientRequestException If none of the parameters are provided.
      */
     @Cacheable(CacheConfiguration.DRIVERS_CACHE)
     suspend fun getDrivers(
-        sessionKey: Int? = null,
+        sessionKeys: List<Int> = emptyList(),
         meetingKey: Int? = null,
         acronym: String? = null,
         driverNumber: Int? = null
     ): Flow<OpenF1DriverResponse> {
+        if (sessionKeys.isEmpty() && meetingKey == null && acronym == null && driverNumber == null) {
+            throw OpenF1ClientRequestException("One of sessionKeys, meetingKey, acronym or driverNumber are required")
+        }
+
         return webClient
             .get()
             .uri { uriBuilder ->
                 uriBuilder.path("/drivers")
-                    .queryParam("session_key", sessionKey ?: "latest")
-                    .queryParam("meeting_key", meetingKey ?: "latest")
+                addMeetingAndSessionKeyParams(uriBuilder, meetingKey, sessionKeys)
                 acronym?.also { acronym -> uriBuilder.queryParam("name_acronym", acronym) }
                 driverNumber?.also { driverNumber -> uriBuilder.queryParam("driver_number", driverNumber) }
 
@@ -71,9 +76,9 @@ class OpenF1Client(
      */
     @Cacheable(CacheConfiguration.MEETINGS_CACHE_NAME)
     suspend fun getRaces(
-        meetingKey: Int?,
-        year: Int?,
-        circuitKey: Int?
+        meetingKey: Int? = null,
+        year: Int? = null,
+        circuitKey: Int? = null
     ): Flow<OpenF1MeetingResponse> {
         if (meetingKey == null && year == null && circuitKey == null) {
             throw OpenF1ClientRequestException("One of meetingKey, year or circuitKey are required")
@@ -83,7 +88,7 @@ class OpenF1Client(
             .get()
             .uri { uriBuilder ->
                 uriBuilder.path("/meetings")
-                addMeetingAndSessionKeyParams(uriBuilder, meetingKey, null)
+                addMeetingAndSessionKeyParams(uriBuilder, meetingKey, emptyList())
                 year?.also { year -> uriBuilder.queryParam("year", year) }
                 circuitKey?.also { circuitKey -> uriBuilder.queryParam("circuit_key", circuitKey) }
 
@@ -118,7 +123,7 @@ class OpenF1Client(
             .get()
             .uri { uriBuilder ->
                 uriBuilder.path("/sessions")
-                addMeetingAndSessionKeyParams(uriBuilder, meetingKey, sessionKey)
+                addMeetingAndSessionKeyParams(uriBuilder, meetingKey, sessionKey?.let { listOf(it) } ?: emptyList())
                 year?.also { year -> uriBuilder.queryParam("year", year) }
                 sessionName?.also { sessionName -> uriBuilder.queryParam("session_name", sessionName.toString()) }
 
@@ -132,15 +137,15 @@ class OpenF1Client(
      * Retrieves the results of a session.
      *
      * @param meetingKey The meeting key to filter by.
-     * @param sessionKey The session key to filter by.
+     * @param sessionKeys The session keys to filter by.
      * @return A [Flow] emitting [OpenF1SessionResultResponse] objects.
      * @throws OpenF1ClientRequestException If neither meetingKey nor sessionKey is provided.
      */
     suspend fun <K> getResults(
         meetingKey: Int? = null,
-        sessionKey: Int? = null
+        sessionKeys: List<Int> = emptyList()
     ): Flow<K> {
-        if (meetingKey == null && sessionKey == null) {
+        if (meetingKey == null && sessionKeys.isEmpty()) {
             throw OpenF1ClientRequestException("One of meetingKey or sessionKey are required")
         }
 
@@ -148,7 +153,7 @@ class OpenF1Client(
             .get()
             .uri { uriBuilder ->
                 uriBuilder.path("/session_result")
-                addMeetingAndSessionKeyParams(uriBuilder, meetingKey, sessionKey)
+                addMeetingAndSessionKeyParams(uriBuilder, meetingKey, sessionKeys)
 
                 uriBuilder.build()
             }
@@ -180,7 +185,7 @@ class OpenF1Client(
             .get()
             .uri { uriBuilder ->
                 uriBuilder.path("/overtakes")
-                addMeetingAndSessionKeyParams(uriBuilder, meetingKey, sessionKey)
+                addMeetingAndSessionKeyParams(uriBuilder, meetingKey, sessionKey?.let { listOf(it) } ?: emptyList())
                 overtakingDriverNumber?.also { overtakingDriverNumber ->
                     uriBuilder.queryParam(
                         "overtaking_driver_number",
@@ -224,7 +229,7 @@ class OpenF1Client(
             .get()
             .uri { uriBuilder ->
                 uriBuilder.path("/stints")
-                addMeetingAndSessionKeyParams(uriBuilder, meetingKey, sessionKey)
+                addMeetingAndSessionKeyParams(uriBuilder, meetingKey, sessionKey?.let { listOf(it) } ?: emptyList())
                 driverNumber?.also { driverNumber -> uriBuilder.queryParam("driver_number", driverNumber) }
                 compound?.also { compound -> uriBuilder.queryParam("compound", compound) }
 
@@ -256,7 +261,7 @@ class OpenF1Client(
             .get()
             .uri { uriBuilder ->
                 uriBuilder.path("/laps")
-                addMeetingAndSessionKeyParams(uriBuilder, meetingKey, sessionKey)
+                addMeetingAndSessionKeyParams(uriBuilder, meetingKey, sessionKey?.let { listOf(it) } ?: emptyList())
                 driverNumber?.also { driverNumber -> uriBuilder.queryParam("driver_number", driverNumber) }
 
                 uriBuilder.build()
@@ -265,6 +270,14 @@ class OpenF1Client(
             .bodyToFlow()
     }
 
+    /**
+     * Retrieves the starting grid for a session.
+     *
+     * @param meetingKey The meeting key to filter by.
+     * @param sessionKey The session key to filter by.
+     * @return A [Flow] emitting [OpenF1StartingGridResponse] objects.
+     * @throws OpenF1ClientRequestException If neither meetingKey nor sessionKey is provided.
+     */
     suspend fun getStartingGrid(
         meetingKey: Int? = null,
         sessionKey: Int? = null,
@@ -277,7 +290,10 @@ class OpenF1Client(
             .get()
             .uri { uriBuilder ->
                 uriBuilder.path("/starting_grid")
-                addMeetingAndSessionKeyParams(uriBuilder, meetingKey, sessionKey)
+                addMeetingAndSessionKeyParams(
+                    uriBuilder,
+                    meetingKey,
+                    sessionKey?.let { listOf(sessionKey) } ?: emptyList())
 
                 uriBuilder.build()
             }
@@ -285,9 +301,12 @@ class OpenF1Client(
             .bodyToFlow()
     }
 
-    private fun addMeetingAndSessionKeyParams(uriBuilder: UriBuilder, meetingKey: Int?, sessionKey: Int?) {
+    private fun addMeetingAndSessionKeyParams(uriBuilder: UriBuilder, meetingKey: Int?, sessionKeys: List<Int>) {
         meetingKey?.also { meetingKey -> uriBuilder.queryParam("meeting_key", meetingKey) }
-        sessionKey?.also { sessionKey -> uriBuilder.queryParam("session_key", sessionKey) }
+        if (sessionKeys.isNotEmpty()) {
+            val sessionKeys = mapOf("session_key" to sessionKeys.map { it.toString() })
+            uriBuilder.queryParams(MultiValueMapAdapter(sessionKeys))
+        }
     }
 
     companion object {

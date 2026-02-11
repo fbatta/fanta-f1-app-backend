@@ -6,6 +6,7 @@ enum class RaceWeekendSessionType(
     PRACTICE_1("Practice 1"),
     PRACTICE_2("Practice 2"),
     PRACTICE_3("Practice 3"),
+    PRACTICE_COMBINED("Practice combined"),
     SPRINT_QUALIFYING("Sprint qualifying"),
     SPRINT_RACE("Sprint race"),
     QUALIFYING("Qualifying"),

@@ -35,7 +35,7 @@ data class OpenF1MeetingResponse(
     companion object {
         @OptIn(ExperimentalTime::class)
         fun OpenF1MeetingResponse.toRaceResponse(
-            raceId: String = meetingKey.toString(),
+            raceId: String,
             sessions: List<RaceWeekend.Companion.Session> = emptyList()
         ): RaceWeekend = RaceWeekend(
             raceId = raceId,

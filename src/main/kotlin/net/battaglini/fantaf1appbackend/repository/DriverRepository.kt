@@ -14,11 +14,11 @@ import org.springframework.stereotype.Repository
  * This repository provides methods to retrieve all drivers, find a driver by ID,
  * and find a driver by their acronym.
  *
- * @property defaultFirestoreInstance The Firestore instance used for database operations.
+ * @property firestoreInstance The Firestore instance used for database operations.
  */
 @Repository
 class DriverRepository(
-    private val defaultFirestoreInstance: Firestore
+    private val firestoreInstance: Firestore
 ) {
     private val collectionName = "drivers"
 
@@ -29,7 +29,7 @@ class DriverRepository(
      */
     suspend fun getDrivers(): Flow<Driver> {
         val snapshot = withContext(Dispatchers.IO) {
-            defaultFirestoreInstance.collection(collectionName).get().get()
+            firestoreInstance.collection(collectionName).get().get()
         }
         return snapshot.map { driver -> driver.toObject(Driver::class.java) }.asFlow()
     }
@@ -42,7 +42,7 @@ class DriverRepository(
      */
     suspend fun findDriverById(id: String): Driver? {
         val snapshot = withContext(Dispatchers.IO) {
-            defaultFirestoreInstance.collection(collectionName).document(id).get().get()
+            firestoreInstance.collection(collectionName).document(id).get().get()
         }
         if (!snapshot.exists()) {
             return null
@@ -58,7 +58,7 @@ class DriverRepository(
      */
     suspend fun findDriverByAcronym(acronym: String): Driver? {
         val snapshot = withContext(Dispatchers.IO) {
-            defaultFirestoreInstance.collection(collectionName)
+            firestoreInstance.collection(collectionName)
                 .whereEqualTo("acronym", acronym).get().get()
         }
         if (snapshot.isEmpty) {
