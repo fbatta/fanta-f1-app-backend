@@ -15,6 +15,9 @@ firebase:
   storage-bucket: fantaf1-beitz25.firebasestorage.app
   project-id: fantaf1-beitz25
   credentials-path: /credentials/serviceAccount.json
+  firestore:
+    pagination:
+      query-limit: 100
 
 management:
   influx:

@@ -66,4 +66,15 @@ class DriverRepository(
         }
         return snapshot.map { driver -> driver.toObject(Driver::class.java) }.first()
     }
+
+    suspend fun createOrUpdateDrivers(drivers: List<Driver>) {
+        withContext(Dispatchers.IO) {
+            firestoreInstance.runTransaction { transaction ->
+                drivers.forEach { driver ->
+                    val reference = firestoreInstance.collection(collectionName).document(driver.driverId)
+                    transaction.set(reference, driver)
+                }
+            }.get()
+        }
+    }
 }

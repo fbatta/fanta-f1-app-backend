@@ -35,8 +35,9 @@ class RaceResultsService(
             }
 
             val raceResults =
-                openF1Client.getResults<OpenF1SessionResultResponse>(sessionKeys = listOf(sessionKey)).toList()
-            val startingGrid = openF1Client.getStartingGrid(sessionKey = sessionKey).toList()
+                openF1Client.getResults<OpenF1SessionResultResponse>(sessionKeys = listOf(sessionKey.toString()))
+                    .toList()
+            val startingGrid = openF1Client.getStartingGrid(sessionKey = sessionKey.toString()).toList()
             return driverService.getDriversInSessions(listOf(sessionKey))
                 .map { driver ->
                     getDriverResultForRace(sessionKey, driver, startingGrid, raceResults, raceWeekend, session)
@@ -48,7 +49,7 @@ class RaceResultsService(
     }
 
     private suspend fun getDriverResultForRace(
-        sessionId: Int,
+        sessionKey: Int,
         driver: Driver,
         startingGrid: List<OpenF1StartingGridResponse>,
         results: List<OpenF1SessionResultResponse>,
@@ -56,12 +57,12 @@ class RaceResultsService(
         session: RaceWeekend.Companion.Session,
     ): DriverRaceResult {
         val numberOfOvertakes = openF1Client.getOvertakes(
-            sessionKey = sessionId,
+            sessionKey = sessionKey.toString(),
             overtakingDriverNumber = driver.driverNumber
         ).count()
         var fastestLap = 999_999.00
         var speedAtTrap = 0.0
-        openF1Client.getLaps(sessionKey = sessionId, driverNumber = driver.driverNumber)
+        openF1Client.getLaps(sessionKey = sessionKey.toString(), driverNumber = driver.driverNumber)
             .collect { lap ->
                 if (lap.lapDuration < fastestLap)
                     fastestLap = lap.lapDuration

@@ -37,7 +37,8 @@ class QualifyingResultsService(
         }
 
         val results =
-            openF1Client.getResults<OpenF1QualifyingSessionResultResponse>(sessionKeys = listOf(sessionKey)).toList()
+            openF1Client.getResults<OpenF1QualifyingSessionResultResponse>(sessionKeys = listOf(sessionKey.toString()))
+                .toList()
         return driverService.getDriversInSessions(listOf(sessionKey)).map { driver ->
             val result = results.first { it.driverNumber == driver.driverNumber }
             DriverQualifyingResult(

@@ -4,23 +4,22 @@ import net.battaglini.fantaf1appbackend.serializer.KotlinInstantSerializer
 import tools.jackson.databind.annotation.JsonSerialize
 import kotlin.time.Instant
 
-data class RaceWeekendResult(
+data class Lineup(
+    val lineupId: String,
+    val teamId: String,
     val raceId: String,
-    val raceName: String,
-    val openF1MeetingKey: Int,
+    val drivers: List<Driver>,
     @JsonSerialize(using = KotlinInstantSerializer::class)
     val createdAt: Instant,
     @JsonSerialize(using = KotlinInstantSerializer::class)
     val updatedAt: Instant,
     val version: Int,
-    val results: List<Result>
+    val score: Double?
 ) {
     companion object {
-        data class Result(
-            val driverId: String,
+        data class LineupDriver(
             val driverNumber: Int,
             val driverAcronym: String,
-            val points: Double
         )
     }
 }

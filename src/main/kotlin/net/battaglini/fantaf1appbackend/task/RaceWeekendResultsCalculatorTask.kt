@@ -1,5 +1,6 @@
 package net.battaglini.fantaf1appbackend.task
 
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
@@ -8,7 +9,9 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import net.battaglini.fantaf1appbackend.client.OpenF1Client
+import net.battaglini.fantaf1appbackend.configuration.ChannelConfiguration
 import net.battaglini.fantaf1appbackend.enums.RaceWeekendSessionType
+import net.battaglini.fantaf1appbackend.enums.TaskType
 import net.battaglini.fantaf1appbackend.model.*
 import net.battaglini.fantaf1appbackend.model.openf1.OpenF1MeetingResponse.Companion.toRaceResponse
 import net.battaglini.fantaf1appbackend.model.openf1.OpenF1SessionResponse.Companion.toRaceWeekendSession
@@ -20,7 +23,6 @@ import net.battaglini.fantaf1appbackend.service.RaceResultsService
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
-import java.util.concurrent.TimeUnit
 import kotlin.time.Clock
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
@@ -30,14 +32,15 @@ import kotlin.uuid.Uuid
 @OptIn(ExperimentalUuidApi::class)
 @Component
 class RaceWeekendResultsCalculatorTask(
-    val practiceResultsService: PracticeResultsService,
-    val qualifyingResultsService: QualifyingResultsService,
-    val raceResultsService: RaceResultsService,
-    val raceWeekendResultRepository: RaceWeekendResultRepository,
-    val openF1Client: OpenF1Client,
-    private val driverRepository: DriverRepository
+    private val practiceResultsService: PracticeResultsService,
+    private val qualifyingResultsService: QualifyingResultsService,
+    private val raceResultsService: RaceResultsService,
+    private val raceWeekendResultRepository: RaceWeekendResultRepository,
+    private val openF1Client: OpenF1Client,
+    private val driverRepository: DriverRepository,
+    private val taskChannel: Channel<ChannelConfiguration.Companion.TaskChannelMessage>
 ) {
-    @Scheduled(fixedRate = 5, timeUnit = TimeUnit.SECONDS)
+    @Scheduled(fixedRate = 30_000, initialDelay = 60_000)
     suspend fun calculateRaceWeekendResults() {
         LOGGER.info("Calculating race weekend results")
 
@@ -53,7 +56,8 @@ class RaceWeekendResultsCalculatorTask(
                 LOGGER.info("No race weekends found within 0 and 6 days before today")
                 return
             }
-            val existingResults = raceWeekendResultRepository.getRaceWeekendResult()
+            val existingResults =
+                raceWeekendResultRepository.getRaceWeekendResult(openF1MeetingKey = meeting.meetingKey)
 
             if (existingResults != null) {
                 LOGGER.info(
@@ -108,6 +112,13 @@ class RaceWeekendResultsCalculatorTask(
             )
 
             raceWeekendResultRepository.saveRaceWeekendResult(raceWeekendResult)
+
+            taskChannel.send(
+                ChannelConfiguration.Companion.TaskChannelMessage(
+                    TaskType.RACE_WEEKEND_RESULTS_CALCULATION_COMPLETED,
+                    raceWeekendResult
+                )
+            )
 
             LOGGER.info("Finished calculating race weekend results")
         } catch (e: Exception) {
@@ -164,6 +175,7 @@ class RaceWeekendResultsCalculatorTask(
 
         return RaceWeekendResult(
             raceId = raceWeekend.raceId,
+            raceName = raceWeekend.raceName,
             openF1MeetingKey = raceWeekend.openF1MeetingKey,
             createdAt = Clock.System.now(),
             updatedAt = Clock.System.now(),

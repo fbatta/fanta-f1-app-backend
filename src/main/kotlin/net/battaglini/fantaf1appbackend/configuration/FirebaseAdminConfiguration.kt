@@ -7,6 +7,7 @@ import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.cloud.FirestoreClient
+import com.google.firebase.messaging.FirebaseMessaging
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Primary
@@ -42,6 +43,12 @@ class FirebaseAdminConfiguration(
     @Primary
     fun defaultFirestoreInstance(defaultFirebaseApp: FirebaseApp): Firestore {
         return FirestoreClient.getFirestore(defaultFirebaseApp)
+    }
+
+    @Bean
+    @Primary
+    fun defaultMessagingInstance(defaultFirebaseApp: FirebaseApp): FirebaseMessaging {
+        return FirebaseMessaging.getInstance(defaultFirebaseApp)
     }
 
     @Bean

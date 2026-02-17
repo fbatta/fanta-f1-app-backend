@@ -1,6 +1,7 @@
 package net.battaglini.fantaf1appbackend.model.openf1
 
 import com.fasterxml.jackson.annotation.JsonProperty
+import net.battaglini.fantaf1appbackend.model.Driver
 
 data class OpenF1DriverResponse(
     @JsonProperty("broadcast_name")
@@ -25,4 +26,16 @@ data class OpenF1DriverResponse(
     val teamColour: String,
     @JsonProperty("team_name")
     val teamName: String
-)
+) {
+    companion object {
+        fun OpenF1DriverResponse.toDriver(driverId: String) = Driver(
+            driverId = driverId,
+            driverNumber = driverNumber,
+            acronym = nameAcronym,
+            initialCost = 0,
+            currentCost = 0,
+            isActive = true,
+            name = fullName
+        )
+    }
+}

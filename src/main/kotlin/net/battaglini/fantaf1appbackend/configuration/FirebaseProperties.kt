@@ -8,5 +8,18 @@ data class FirebaseProperties(
     val projectId: String,
     val credentialsPath: String,
     val databaseId: String,
-    val storageBucket: String
-)
+    val storageBucket: String,
+    val firestore: FirestoreProperties
+) {
+    companion object {
+        @ConfigurationProperties(prefix = "firebase.firestore")
+        data class FirestoreProperties(
+            val pagination: FirestorePaginationProperties
+        )
+
+        @ConfigurationProperties(prefix = "firebase.firestore.pagination")
+        data class FirestorePaginationProperties(
+            val queryLimit: Int = 25
+        )
+    }
+}

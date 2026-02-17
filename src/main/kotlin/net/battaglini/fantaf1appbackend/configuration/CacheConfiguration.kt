@@ -1,6 +1,6 @@
 package net.battaglini.fantaf1appbackend.configuration
 
-import com.github.benmanes.caffeine.cache.Cache
+import com.github.benmanes.caffeine.cache.AsyncCache
 import com.github.benmanes.caffeine.cache.Caffeine
 import org.springframework.cache.CacheManager
 import org.springframework.cache.annotation.EnableCaching
@@ -13,25 +13,25 @@ import java.time.Duration
 @EnableCaching
 class CacheConfiguration {
     @Bean
-    fun meetingSessionsCache(): Cache<Any, Any> = Caffeine.newBuilder()
+    fun meetingSessionsCache(): AsyncCache<Any, Any> = Caffeine.newBuilder()
         .expireAfterWrite(Duration.ofMinutes(10))
-        .build()
+        .buildAsync()
 
     @Bean
-    fun meetingsCache(): Cache<Any, Any> = Caffeine.newBuilder()
+    fun meetingsCache(): AsyncCache<Any, Any> = Caffeine.newBuilder()
         .expireAfterWrite(Duration.ofMinutes(60))
-        .build()
+        .buildAsync()
 
     @Bean
-    fun driversCache(): Cache<Any, Any> = Caffeine.newBuilder()
+    fun driversCache(): AsyncCache<Any, Any> = Caffeine.newBuilder()
         .expireAfterWrite(Duration.ofMinutes(60))
-        .build()
+        .buildAsync()
 
     @Bean
     fun cacheManager(
-        meetingSessionsCache: Cache<Any, Any>,
-        meetingsCache: Cache<Any, Any>,
-        driversCache: Cache<Any, Any>
+        meetingSessionsCache: AsyncCache<Any, Any>,
+        meetingsCache: AsyncCache<Any, Any>,
+        driversCache: AsyncCache<Any, Any>
     ): CacheManager {
         val caffeineCacheManager = CaffeineCacheManager()
         caffeineCacheManager.registerCustomCache(
@@ -46,6 +46,7 @@ class CacheConfiguration {
             DRIVERS_CACHE,
             driversCache
         )
+        caffeineCacheManager.setAsyncCacheMode(true)
         return caffeineCacheManager
     }
 

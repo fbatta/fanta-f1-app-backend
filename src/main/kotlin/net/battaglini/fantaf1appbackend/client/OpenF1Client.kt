@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component
 import org.springframework.util.MultiValueMapAdapter
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.bodyToFlow
+import org.springframework.web.reactive.function.client.exchangeToFlow
 import org.springframework.web.util.UriBuilder
 
 /**
@@ -41,8 +42,8 @@ class OpenF1Client(
      * @throws OpenF1ClientRequestException If none of the parameters are provided.
      */
     @Cacheable(CacheConfiguration.DRIVERS_CACHE)
-    suspend fun getDrivers(
-        sessionKeys: List<Int> = emptyList(),
+    fun getDrivers(
+        sessionKeys: List<String> = emptyList(),
         meetingKey: Int? = null,
         acronym: String? = null,
         driverNumber: Int? = null
@@ -61,8 +62,7 @@ class OpenF1Client(
 
                 uriBuilder.build()
             }
-            .retrieve()
-            .bodyToFlow()
+            .exchangeToFlow { it.bodyToFlow() }
     }
 
     /**
@@ -75,7 +75,7 @@ class OpenF1Client(
      * @throws OpenF1ClientRequestException If none of the parameters are provided.
      */
     @Cacheable(CacheConfiguration.MEETINGS_CACHE_NAME)
-    suspend fun getRaces(
+    fun getRaces(
         meetingKey: Int? = null,
         year: Int? = null,
         circuitKey: Int? = null
@@ -94,8 +94,7 @@ class OpenF1Client(
 
                 uriBuilder.build()
             }
-            .retrieve()
-            .bodyToFlow()
+            .exchangeToFlow { it.bodyToFlow() }
     }
 
     /**
@@ -109,9 +108,9 @@ class OpenF1Client(
      * @throws OpenF1ClientRequestException If none of the parameters are provided.
      */
     @Cacheable(MEETING_SESSIONS_CACHE)
-    suspend fun getSessions(
+    fun getSessions(
         meetingKey: Int? = null,
-        sessionKey: Int? = null,
+        sessionKey: String? = null,
         sessionName: OpenF1SessionName? = null,
         year: Int? = null
     ): Flow<OpenF1SessionResponse> {
@@ -129,8 +128,7 @@ class OpenF1Client(
 
                 uriBuilder.build()
             }
-            .retrieve()
-            .bodyToFlow()
+            .exchangeToFlow { it.bodyToFlow() }
     }
 
     /**
@@ -141,9 +139,9 @@ class OpenF1Client(
      * @return A [Flow] emitting [OpenF1SessionResultResponse] objects.
      * @throws OpenF1ClientRequestException If neither meetingKey nor sessionKey is provided.
      */
-    suspend fun <K> getResults(
+    fun <K> getResults(
         meetingKey: Int? = null,
-        sessionKeys: List<Int> = emptyList()
+        sessionKeys: List<String> = emptyList()
     ): Flow<K> {
         if (meetingKey == null && sessionKeys.isEmpty()) {
             throw OpenF1ClientRequestException("One of meetingKey or sessionKey are required")
@@ -157,8 +155,7 @@ class OpenF1Client(
 
                 uriBuilder.build()
             }
-            .retrieve()
-            .bodyToFlow()
+            .exchangeToFlow { it.bodyToFlow() }
     }
 
     /**
@@ -171,9 +168,9 @@ class OpenF1Client(
      * @return A [Flow] emitting [OpenF1OvertakeResponse] objects.
      * @throws OpenF1ClientRequestException If none of the parameters are provided.
      */
-    suspend fun getOvertakes(
+    fun getOvertakes(
         meetingKey: Int? = null,
-        sessionKey: Int? = null,
+        sessionKey: String? = null,
         overtakingDriverNumber: Int? = null,
         overtakenDriverNumber: Int? = null
     ): Flow<OpenF1OvertakeResponse> {
@@ -201,8 +198,7 @@ class OpenF1Client(
 
                 uriBuilder.build()
             }
-            .retrieve()
-            .bodyToFlow()
+            .exchangeToFlow { it.bodyToFlow() }
     }
 
     /**
@@ -215,9 +211,9 @@ class OpenF1Client(
      * @return A [Flow] emitting [OpenF1StintResponse] objects.
      * @throws OpenF1ClientRequestException If none of the parameters are provided.
      */
-    suspend fun getStints(
+    fun getStints(
         meetingKey: Int? = null,
-        sessionKey: Int? = null,
+        sessionKey: String? = null,
         driverNumber: Int? = null,
         compound: OpenF1TyreCompound? = null
     ): Flow<OpenF1StintResponse> {
@@ -235,8 +231,7 @@ class OpenF1Client(
 
                 uriBuilder.build()
             }
-            .retrieve()
-            .bodyToFlow()
+            .exchangeToFlow { it.bodyToFlow() }
     }
 
     /**
@@ -248,9 +243,9 @@ class OpenF1Client(
      * @return A [Flow] emitting [OpenF1LapResponse] objects.
      * @throws OpenF1ClientRequestException If none of the parameters are provided.
      */
-    suspend fun getLaps(
+    fun getLaps(
         meetingKey: Int? = null,
-        sessionKey: Int? = null,
+        sessionKey: String? = null,
         driverNumber: Int? = null
     ): Flow<OpenF1LapResponse> {
         if (meetingKey == null && sessionKey == null && driverNumber == null) {
@@ -266,8 +261,7 @@ class OpenF1Client(
 
                 uriBuilder.build()
             }
-            .retrieve()
-            .bodyToFlow()
+            .exchangeToFlow { it.bodyToFlow() }
     }
 
     /**
@@ -278,9 +272,9 @@ class OpenF1Client(
      * @return A [Flow] emitting [OpenF1StartingGridResponse] objects.
      * @throws OpenF1ClientRequestException If neither meetingKey nor sessionKey is provided.
      */
-    suspend fun getStartingGrid(
+    fun getStartingGrid(
         meetingKey: Int? = null,
-        sessionKey: Int? = null,
+        sessionKey: String? = null,
     ): Flow<OpenF1StartingGridResponse> {
         if (meetingKey == null && sessionKey == null) {
             throw OpenF1ClientRequestException("One of meetingKey or sessionKey are required")
@@ -297,14 +291,13 @@ class OpenF1Client(
 
                 uriBuilder.build()
             }
-            .retrieve()
-            .bodyToFlow()
+            .exchangeToFlow { it.bodyToFlow() }
     }
 
-    private fun addMeetingAndSessionKeyParams(uriBuilder: UriBuilder, meetingKey: Int?, sessionKeys: List<Int>) {
+    private fun addMeetingAndSessionKeyParams(uriBuilder: UriBuilder, meetingKey: Int?, sessionKeys: List<String>) {
         meetingKey?.also { meetingKey -> uriBuilder.queryParam("meeting_key", meetingKey) }
         if (sessionKeys.isNotEmpty()) {
-            val sessionKeys = mapOf("session_key" to sessionKeys.map { it.toString() })
+            val sessionKeys = mapOf("session_key" to sessionKeys)
             uriBuilder.queryParams(MultiValueMapAdapter(sessionKeys))
         }
     }
