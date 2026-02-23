@@ -32,7 +32,11 @@ class QualifyingResultsService(
         val sessionKey = session?.openF1SessionKey
 
         if (sessionKey == null) {
-            LOGGER.error("No race session found for race ${raceWeekend.raceId}")
+            LOGGER.error(
+                "No (sprint)qualifying session found for raceId={}, raceName={}",
+                raceWeekend.raceId,
+                raceWeekend.raceName
+            )
             return emptyFlow()
         }
 

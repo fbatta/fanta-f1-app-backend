@@ -8,10 +8,12 @@ import kotlinx.coroutines.withContext
 import net.battaglini.fantaf1appbackend.enums.RaceWeekendSessionType
 import net.battaglini.fantaf1appbackend.model.DriverResult
 import org.springframework.stereotype.Repository
+import tools.jackson.databind.ObjectMapper
 
 @Repository
 class DriverResultRepository(
-    val firestoreInstance: Firestore
+    val firestoreInstance: Firestore,
+    private val objectMapper: ObjectMapper
 ) {
     suspend fun <K : DriverResult> saveDriverResults(driverResults: List<K>) {
         withContext(Dispatchers.IO) {
@@ -21,13 +23,13 @@ class DriverResultRepository(
                         .document(driverResult.raceId)
                         .collection(driverResult.sessionType.name)
                         .document(driverResult.driverId)
-                    transaction.set(docReference, driverResult)
+                    transaction.set(docReference, objectMapper.convertValue(driverResult, Map::class.java))
                 }
             }.get()
         }
     }
 
-    final suspend inline fun <reified K : DriverResult> getResultsForSession(
+    private final suspend inline fun <reified K : DriverResult> getResultsForSession(
         raceId: String,
         sessionType: RaceWeekendSessionType
     ): Flow<K> {
@@ -35,10 +37,10 @@ class DriverResultRepository(
             firestoreInstance.collection(COLLECTION_PATH).document(raceId)
                 .collection(sessionType.name).get().get()
         }
-        return querySnapshot.map { it.toObject<K>(K::class.java) }.asFlow()
+        return querySnapshot.map { objectMapper.convertValue(it.data, K::class.java) }.asFlow()
     }
 
     companion object {
-        const val COLLECTION_PATH = "/driver_results"
+        const val COLLECTION_PATH = "driver_results"
     }
 }

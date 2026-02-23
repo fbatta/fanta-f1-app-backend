@@ -5,37 +5,30 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import net.battaglini.fantaf1appbackend.model.RaceWeekendResult
 import org.springframework.stereotype.Repository
+import tools.jackson.databind.ObjectMapper
 
 @Repository
 class RaceWeekendResultRepository(
-    val firestoreInstance: Firestore
+    private val firestoreInstance: Firestore,
+    private val objectMapper: ObjectMapper
 ) {
     suspend fun saveRaceWeekendResult(raceWeekendResult: RaceWeekendResult) {
         withContext(Dispatchers.IO) {
             firestoreInstance.collection(COLLECTION_PATH)
                 .document(raceWeekendResult.raceId)
-                .set(raceWeekendResult)
+                .create(objectMapper.convertValue(raceWeekendResult, Map::class.java))
                 .get()
         }
     }
 
     suspend fun updateRaceWeekendResult(raceWeekendResult: RaceWeekendResult) {
         withContext(Dispatchers.IO) {
-            val snapshot = firestoreInstance.collection(COLLECTION_PATH)
+            val map: Map<String, Any> =
+                objectMapper.convertValue(raceWeekendResult, Map::class.java) as Map<String, Any>
+            firestoreInstance.collection(COLLECTION_PATH)
                 .document(raceWeekendResult.raceId)
+                .update(map)
                 .get()
-                .get()
-            if (!snapshot.exists()) {
-                throw RaceWeekendResultRepositoryException("Race weekend result not found for raceId=${raceWeekendResult.raceId}")
-            }
-            val existing = snapshot.toObject(RaceWeekendResult::class.java)
-                ?: throw RaceWeekendResultRepositoryException("Race weekend result not found for raceId=${raceWeekendResult.raceId}")
-
-            if (existing.version >= raceWeekendResult.version) {
-                throw RaceWeekendResultRepositoryException("The new version number is not greater than the existing version number for raceId=${raceWeekendResult.raceId}")
-            }
-
-            snapshot.reference.set(raceWeekendResult).get()
         }
     }
 
@@ -43,34 +36,40 @@ class RaceWeekendResultRepository(
         if (raceId == null && openF1MeetingKey == null) {
             throw RaceWeekendResultRepositoryException("One of raceId or openF1MeetingKey are required")
         }
-        var result: RaceWeekendResult? = null
-        raceId?.also {
-            val snapshot = withContext(Dispatchers.IO) {
-                firestoreInstance.collection(COLLECTION_PATH)
-                    .document(raceId)
-                    .get()
-                    .get()
+
+        try {
+            var result: RaceWeekendResult? = null
+            raceId?.also {
+                val snapshot = withContext(Dispatchers.IO) {
+                    firestoreInstance.collection(COLLECTION_PATH)
+                        .document(raceId)
+                        .get()
+                        .get()
+                }
+                result = objectMapper.convertValue(snapshot.data, RaceWeekendResult::class.java)
             }
-            if (!snapshot.exists()) {
-                throw RaceWeekendResultRepositoryException("Race weekend result not found for raceId=$raceId")
+            openF1MeetingKey?.also {
+                val querySnapshot = withContext(Dispatchers.IO) {
+                    firestoreInstance.collection(COLLECTION_PATH)
+                        .whereEqualTo(RaceWeekendResult::openF1MeetingKey.name, openF1MeetingKey)
+                        .get()
+                        .get()
+                }
+                result = querySnapshot.firstOrNull()?.data?.let {
+                    objectMapper.convertValue(
+                        it,
+                        RaceWeekendResult::class.java
+                    )
+                }
             }
-            result = snapshot.toObject(RaceWeekendResult::class.java)
-                ?: throw RaceWeekendResultRepositoryException("Race weekend result not found for raceId=$raceId")
+            return result
+        } catch (e: NoSuchElementException) {
+            return null
         }
-        openF1MeetingKey?.also {
-            val querySnapshot = withContext(Dispatchers.IO) {
-                firestoreInstance.collection(COLLECTION_PATH)
-                    .whereEqualTo(RaceWeekendResult::openF1MeetingKey.name, openF1MeetingKey)
-                    .get()
-                    .get()
-            }
-            result = querySnapshot.first().toObject(RaceWeekendResult::class.java)
-        }
-        return result
     }
 
     companion object {
-        const val COLLECTION_PATH = "/race_weekend_results"
+        const val COLLECTION_PATH = "race_weekend_results"
 
         class RaceWeekendResultRepositoryException(
             override val message: String? = null,

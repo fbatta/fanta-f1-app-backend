@@ -20,14 +20,18 @@ class DriverService(
 ) {
     @EventListener(ApplicationStartedEvent::class)
     suspend fun seedDrivers() {
-        LOGGER.info("Seeding F1 drivers")
-        val drivers = openF1Client.getDrivers(sessionKeys = listOf("latest")).map {
-            it.toDriver(
-                calculateDriverId(it.driverNumber, it.nameAcronym)
-            )
-        }.toList()
-        driverRepository.createOrUpdateDrivers(drivers)
-        LOGGER.info("Seeded {} drivers into Firebase", drivers.size)
+        try {
+            LOGGER.info("Seeding F1 drivers...")
+            val drivers = openF1Client.getDrivers(sessionKeys = listOf("latest")).map {
+                it.toDriver(
+                    calculateDriverId(it.driverNumber, it.nameAcronym)
+                )
+            }.toList()
+            driverRepository.createOrUpdateDrivers(drivers)
+            LOGGER.info("Seeded {} drivers into Firebase", drivers.size)
+        } catch (e: Exception) {
+            LOGGER.error("Failed to seed drivers to Firebase", e)
+        }
     }
 
     suspend fun getDriversInSessions(sessionKeys: List<Int>): Flow<Driver> {

@@ -10,10 +10,9 @@ import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import net.battaglini.fantaf1appbackend.client.OpenF1Client
 import net.battaglini.fantaf1appbackend.configuration.ChannelConfiguration
-import net.battaglini.fantaf1appbackend.enums.RaceWeekendSessionType
 import net.battaglini.fantaf1appbackend.enums.TaskType
 import net.battaglini.fantaf1appbackend.model.*
-import net.battaglini.fantaf1appbackend.model.openf1.OpenF1MeetingResponse.Companion.toRaceResponse
+import net.battaglini.fantaf1appbackend.model.openf1.OpenF1MeetingResponse.Companion.toRace
 import net.battaglini.fantaf1appbackend.model.openf1.OpenF1SessionResponse.Companion.toRaceWeekendSession
 import net.battaglini.fantaf1appbackend.repository.DriverRepository
 import net.battaglini.fantaf1appbackend.repository.RaceWeekendResultRepository
@@ -41,7 +40,7 @@ class RaceWeekendResultsCalculatorTask(
     private val taskChannel: Channel<ChannelConfiguration.Companion.TaskChannelMessage>
 ) {
     @Scheduled(fixedRate = 30_000, initialDelay = 60_000)
-    suspend fun calculateRaceWeekendResults() {
+    suspend fun runTask() {
         LOGGER.info("Calculating race weekend results")
 
         val now = Clock.System.now()
@@ -74,7 +73,7 @@ class RaceWeekendResultsCalculatorTask(
                     sessionId = generateSessionId(meeting.meetingKey, it.sessionKey)
                 )
             }.toList()
-            val raceWeekend = meeting.toRaceResponse(
+            val raceWeekend = meeting.toRace(
                 raceId = generateRaceId(meeting.meetingKey, meeting.year), sessions = sessions
             )
             val combinedPracticeResults =
@@ -84,23 +83,22 @@ class RaceWeekendResultsCalculatorTask(
                 .getDriversResultsForQualifying(raceWeekend, false)
                 .toList()
             delay(2000)
-            val sprintQualifyingResults =
-                sessions
-                    .firstOrNull { it.sessionType == RaceWeekendSessionType.SPRINT_QUALIFYING }
-                    ?.let {
-                        qualifyingResultsService.getDriversResultsForQualifying(raceWeekend, true)
-                    }
-                    ?.toList() ?: emptyList()
+            val sprintQualifyingResults = qualifyingResultsService
+                .getDriversResultsForQualifying(raceWeekend, true)
+                .toList()
             delay(2000)
             val raceResults = raceResultsService.getResultsForRace(raceWeekend, false).toList()
             delay(2000)
-            val sprintRaceResults =
-                sessions
-                    .firstOrNull { it.sessionType == RaceWeekendSessionType.SPRINT_RACE }
-                    ?.let {
-                        raceResultsService.getResultsForRace(raceWeekend, true)
-                    }
-                    ?.toList() ?: emptyList()
+            val sprintRaceResults = raceResultsService.getResultsForRace(raceWeekend, true).toList()
+
+            if (combinedPracticeResults.isEmpty() || qualifyingResults.isEmpty() || raceResults.isEmpty()) {
+                LOGGER.warn(
+                    "Could not calculate minimum set of results for raceId={}, raceName={}. This could be due to not all results being available yet",
+                    raceWeekend.raceId,
+                    raceWeekend.raceName
+                )
+                return
+            }
 
             val raceWeekendResult = calculateRaceWeekendResults(
                 combinedPracticeResults,

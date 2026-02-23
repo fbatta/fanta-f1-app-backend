@@ -1,4 +1,4 @@
-val firebaseAdminVersion = "9.7.0"
+val firebaseAdminVersion = "9.7.1"
 val kotlinxDateTimeVersion = "0.7.1"
 val caffeineVersion = "3.2.3"
 
@@ -7,6 +7,7 @@ plugins {
     kotlin("plugin.spring") version "2.3.0"
     id("org.springframework.boot") version "4.0.2"
     id("io.spring.dependency-management") version "1.1.7"
+    id("com.github.ben-manes.versions") version "0.53.0"
 }
 
 group = "net.battaglini"

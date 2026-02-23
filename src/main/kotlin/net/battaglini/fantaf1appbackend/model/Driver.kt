@@ -5,7 +5,6 @@ data class Driver(
     val driverNumber: Int,
     val acronym: String,
     val initialCost: Int,
-    val currentCost: Int,
     val isActive: Boolean,
     val name: String
 )

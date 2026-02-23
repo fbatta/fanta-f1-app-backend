@@ -33,7 +33,6 @@ data class OpenF1DriverResponse(
             driverNumber = driverNumber,
             acronym = nameAcronym,
             initialCost = 0,
-            currentCost = 0,
             isActive = true,
             name = fullName
         )

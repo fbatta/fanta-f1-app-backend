@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.withContext
 import net.battaglini.fantaf1appbackend.model.Driver
 import org.springframework.stereotype.Repository
+import tools.jackson.databind.ObjectMapper
 
 /**
  * Repository for accessing Driver data from Firestore.
@@ -18,7 +19,8 @@ import org.springframework.stereotype.Repository
  */
 @Repository
 class DriverRepository(
-    private val firestoreInstance: Firestore
+    private val firestoreInstance: Firestore,
+    private val objectMapper: ObjectMapper
 ) {
     private val collectionName = "drivers"
 
@@ -31,7 +33,7 @@ class DriverRepository(
         val snapshot = withContext(Dispatchers.IO) {
             firestoreInstance.collection(collectionName).get().get()
         }
-        return snapshot.map { driver -> driver.toObject(Driver::class.java) }.asFlow()
+        return snapshot.map { driver -> objectMapper.convertValue(driver.data, Driver::class.java) }.asFlow()
     }
 
     /**
@@ -47,7 +49,7 @@ class DriverRepository(
         if (!snapshot.exists()) {
             return null
         }
-        return snapshot.toObject(Driver::class.java)
+        return objectMapper.convertValue(snapshot.data, Driver::class.java)
     }
 
     /**
@@ -64,7 +66,7 @@ class DriverRepository(
         if (snapshot.isEmpty) {
             return null
         }
-        return snapshot.map { driver -> driver.toObject(Driver::class.java) }.first()
+        return snapshot.map { driver -> objectMapper.convertValue(driver.data, Driver::class.java) }.first()
     }
 
     suspend fun createOrUpdateDrivers(drivers: List<Driver>) {
@@ -72,7 +74,7 @@ class DriverRepository(
             firestoreInstance.runTransaction { transaction ->
                 drivers.forEach { driver ->
                     val reference = firestoreInstance.collection(collectionName).document(driver.driverId)
-                    transaction.set(reference, driver)
+                    transaction.set(reference, objectMapper.convertValue(driver, Map::class.java))
                 }
             }.get()
         }

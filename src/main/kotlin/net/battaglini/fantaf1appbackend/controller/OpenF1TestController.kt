@@ -4,7 +4,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import net.battaglini.fantaf1appbackend.client.OpenF1Client
 import net.battaglini.fantaf1appbackend.model.RaceWeekend
-import net.battaglini.fantaf1appbackend.model.openf1.OpenF1MeetingResponse.Companion.toRaceResponse
+import net.battaglini.fantaf1appbackend.model.openf1.OpenF1MeetingResponse.Companion.toRace
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
@@ -22,6 +22,6 @@ class OpenF1TestController(
             year = year,
             meetingKey = null,
             circuitKey = null
-        ).map { it.toRaceResponse(raceId = Uuid.random().toString()) }
+        ).map { it.toRace(raceId = Uuid.random().toString()) }
     }
 }
