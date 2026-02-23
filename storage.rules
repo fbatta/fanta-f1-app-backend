@@ -1,0 +1,48 @@
+rules_version = '2';
+
+// Craft rules based on data in your Firestore database
+// allow write: if firestore.get(
+//    /databases/(default)/documents/users/$(request.auth.uid)).data.isAdmin;
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Match files in the avatars folder, using the user's ID as the path segment
+    match /avatars/{userId}/{fileName} {
+      
+      // Allow only 'write' (create/update) operations
+      // The `write` method includes 'create' and 'update' requests.
+      allow write: if isAuthenticated() && 
+                    isUserFile(userId) && 
+                    isImageFormat() && 
+                    isMax1MB();
+
+      // You can add a read rule for public access or only for the user
+      allow read: if true; // Allows anyone to read (public avatar)
+      // OR: allow read: if isAuthenticated(); // Only authenticated users can read
+      // OR: allow read: if isAuthenticated() && isUserFile(userId); // Only the owner can read (if read is only for them)
+    }
+    
+    // Helper function to check if the user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper function to ensure the user is writing to their own folder
+    function isUserFile(userId) {
+      return request.auth.uid == userId;
+    }
+
+    // Helper function to restrict file size to a maximum of 1MB (1024 * 1024 bytes)
+    function isMax1MB() {
+      // The `request.resource.size` is only available on 'create' and 'update'.
+      // When a file is being uploaded, `request.resource` contains its metadata, including size.
+      return request.resource.size < 1 * 1024 * 1024;
+    }
+
+    // Helper function to allow only common image MIME types (JPEG, PNG, GIF, WebP)
+    function isImageFormat() {
+      // The `contentType` property from the uploaded file's metadata
+      // is checked against a regular expression for popular image formats.
+      return request.resource.contentType.matches('image/(jpeg|png|gif|webp)');
+    }
+  }
+}

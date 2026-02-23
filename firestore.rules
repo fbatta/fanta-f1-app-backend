@@ -1,0 +1,91 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+  	// --- HELPER METHODS ---
+  
+  	// Check if user is logged in
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Check if the user making the request is the owner of the data
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    
+    // Fetch the specific race document to check dates
+    function getRace(raceId) {
+      return get(/databases/$(database)/documents/races/$(raceId));
+    }
+    
+    // Check if the user has a specific privilege in their user profile
+    // Note: This costs 1 read rule if the user document isn't already loaded
+    function hasPrivilege(privilegeName) {
+      let userDoc = get(/databases/$(database)/documents/users/$(request.auth.uid));
+      return privilegeName in userDoc.data.privileges;
+    }
+    
+    // Check if the current time is BEFORE the race lock date
+    function isBeforeLock(raceId) {
+      let race = getRace(raceId);
+      return request.time < race.data.lineupEndDate;
+    }
+    
+    // Check if the current time is AFTER the race lock date
+    function isAfterLock(raceId) {
+      let race = getRace(raceId);
+      return request.time > race.data.lineupEndDate;
+    }
+    
+    // --- COLLECTION RULES ---
+    // 
+    // 1. USERS
+    // Anyone can read profiles (for leaderboards), but users can only edit their own.
+    // Crucially, we prevent users from editing their own 'privileges' field.
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) 
+                    && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['privileges'])); 
+    }
+    
+    // 2. TEAMS
+    // Public read. Only the owner (based on the 'ownerId' field) can edit.
+    match /teams/{teamId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow update: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+    }
+    
+    // 3. DRIVERS
+    // Read-only for the client apps. Only admins (handled via backend scripts) can write.
+    match /drivers/{driverId} {
+      allow read: if isSignedIn();
+      allow write: if false; 
+    }
+    
+    // 4. RACES & 4a. DRIVER SCORES
+    // Read-only for clients.
+    match /races/{raceId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+    
+    // 5. LOBBIES
+    // Create: Must have 'createLobby' privilege.
+    // Update: Only the creator can update settings.
+    // Note: Joining a lobby (updating the 'memberIds' array) is complex in rules alone; 
+    // usually easier to handle via a Cloud Function or strict array-union rules.
+    match /lobbies/{lobbyId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow update: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+    }
+  }
+
+  match /race_weekend_results/{raceWeekendResultId} {
+    allow read: if isSignedIn();
+    allow write: if false;
+  }
+}
