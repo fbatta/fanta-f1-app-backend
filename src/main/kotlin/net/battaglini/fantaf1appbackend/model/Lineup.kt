@@ -9,8 +9,9 @@ import kotlin.time.Instant
 data class Lineup(
     val lineupId: String,
     val teamId: String,
+    val ownerId: String,
     val raceId: String,
-    val drivers: List<Driver>,
+    val drivers: List<LineupDriver>,
     @JsonSerialize(using = KotlinInstantSerializer::class)
     @JsonDeserialize(using = KotlinInstantDeserializer::class)
     val createdAt: Instant,

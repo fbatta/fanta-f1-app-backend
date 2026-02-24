@@ -1,10 +1,12 @@
 package net.battaglini.fantaf1appbackend.repository
 
 import com.google.cloud.firestore.Firestore
+import com.google.cloud.firestore.Transaction
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import net.battaglini.fantaf1appbackend.model.Lineup
 import org.springframework.stereotype.Repository
+import tools.jackson.databind.ObjectMapper
 
 /**
  * Repository for accessing Lineup data from Firestore.
@@ -15,7 +17,8 @@ import org.springframework.stereotype.Repository
  */
 @Repository
 class LineupRepository(
-    val firestore: Firestore
+    private val firestore: Firestore,
+    private val objectMapper: ObjectMapper
 ) {
     /**
      * Retrieves a lineup for a specific team and race.
@@ -32,7 +35,7 @@ class LineupRepository(
                     Lineup::teamId.name, teamId
                 ).whereEqualTo(Lineup::raceId.name, raceId)
                 .get().get()
-        }.map { it.toObject(Lineup::class.java) }.firstOrNull()
+        }.map { objectMapper.convertValue(it.data, Lineup::class.java) }.firstOrNull()
     }
 
     /**
@@ -49,8 +52,17 @@ class LineupRepository(
             firestore
                 .collection(COLLECTION_PATH)
                 .document(lineup.lineupId)
-                .set(lineup)
+                .set(objectMapper.convertValue(lineup, Map::class.java))
         }
+    }
+
+    fun updateLineupInTransaction(lineup: Lineup, transaction: Transaction) {
+        transaction.update(
+            firestore
+                .collection(COLLECTION_PATH)
+                .document(lineup.lineupId),
+            objectMapper.convertValue(lineup, Map::class.java) as Map<String, Any>
+        );
     }
 
     companion object {

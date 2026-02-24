@@ -15,12 +15,20 @@ import kotlin.time.ExperimentalTime
 data class OpenF1MeetingResponse(
     @JsonProperty("circuit_key")
     val circuitKey: Int,
+    @JsonProperty("circuit_image")
+    val circuitImage: String,
     @JsonProperty("meeting_name")
     val meetingName: String,
     @JsonProperty("meeting_key")
     val meetingKey: Int,
     @JsonProperty("meeting_official_name")
     val meetingOfficialName: String,
+    @JsonProperty("country_name")
+    val countryName: String,
+    @JsonProperty("country_flag")
+    val countryFlag: String,
+    @JsonProperty("circuit_type")
+    val circuitType: String,
     val year: Int,
     @JsonProperty("date_start")
     @JsonDeserialize(using = OpenF1TimestampDeserializer::class)
@@ -43,7 +51,11 @@ data class OpenF1MeetingResponse(
             raceName = meetingName,
             dateStart = dateStart.toInstant(gmtOffset),
             dateEnd = dateEnd.toInstant(gmtOffset),
-            sessions = sessions
+            sessions = sessions,
+            circuitImage = circuitImage,
+            countryName = countryName,
+            countryFlag = countryFlag,
+            circuitType = circuitType
         )
     }
 }

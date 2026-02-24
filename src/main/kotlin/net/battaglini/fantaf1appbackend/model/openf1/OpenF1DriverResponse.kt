@@ -34,7 +34,10 @@ data class OpenF1DriverResponse(
             acronym = nameAcronym,
             initialCost = 0,
             isActive = true,
-            name = fullName
+            name = fullName,
+            driverAvatar = headshotUrl,
+            teamName = teamName,
+            teamColour = teamColour,
         )
     }
 }

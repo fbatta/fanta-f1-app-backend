@@ -18,4 +18,5 @@ data class Team(
     @JsonSerialize(using = KotlinInstantSerializer::class)
     @JsonDeserialize(using = KotlinInstantDeserializer::class)
     val updatedAt: Instant,
+    val points: MutableMap<Int, Double>
 )

@@ -1,8 +1,13 @@
 package net.battaglini.fantaf1appbackend.task
 
 import com.google.cloud.firestore.DocumentSnapshot
+import com.google.cloud.firestore.Firestore
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.withContext
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import net.battaglini.fantaf1appbackend.configuration.ChannelConfiguration
 import net.battaglini.fantaf1appbackend.enums.UserNotificationType
 import net.battaglini.fantaf1appbackend.model.Lineup
@@ -19,7 +24,8 @@ class TeamsResultsCalculatorTask(
     private val taskChannel: Channel<ChannelConfiguration.Companion.TaskChannelMessage>,
     private val userNotificationChannel: Channel<ChannelConfiguration.Companion.UserNotificationChannelMessage>,
     private val teamRepository: TeamRepository,
-    private val lineupRepository: LineupRepository
+    private val lineupRepository: LineupRepository,
+    private val firestore: Firestore
 ) {
     @Scheduled(fixedRate = 1000)
     suspend fun runTask() {
@@ -65,16 +71,32 @@ class TeamsResultsCalculatorTask(
                     continue
                 }
 
-                val points = calculatePointsPerLineup(raceWeekendResult, lineup)
+                val score = calculatePointsPerLineup(raceWeekendResult, lineup)
+                val currentYear = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).year;
+                val currentPoints = team.points;
+                val teamPointsForYear = currentPoints.getOrDefault(currentYear, 0.0) + score;
+                currentPoints[currentYear] = teamPointsForYear;
 
                 try {
-                    lineupRepository.createOrUpdateLineup(
-                        lineup.copy(
-                            score = points,
-                            updatedAt = Clock.System.now(),
-                            version = lineup.version + 1
-                        )
-                    )
+                    withContext(Dispatchers.IO) {
+                        firestore.runTransaction { transaction ->
+                            lineupRepository.updateLineupInTransaction(
+                                lineup.copy(
+                                    score = score,
+                                    updatedAt = Clock.System.now(),
+                                    version = lineup.version + 1
+                                ),
+                                transaction
+                            )
+                            teamRepository.updateTeamInTransaction(
+                                team.copy(
+                                    points = currentPoints,
+                                    updatedAt = Clock.System.now(),
+                                ),
+                                transaction
+                            )
+                        }.get()
+                    }
                 } catch (e: Exception) {
                     LOGGER.error(
                         "Could not save score for teamId={}, teamName={}. Admin will have to enter score manually",
@@ -90,7 +112,7 @@ class TeamsResultsCalculatorTask(
     suspend fun calculatePointsPerLineup(raceWeekendResult: RaceWeekendResult, lineup: Lineup): Double {
         var points = 0.0
         for (driver in lineup.drivers) {
-            val result = raceWeekendResult.results.firstOrNull { it.driverAcronym == driver.acronym }
+            val result = raceWeekendResult.results.firstOrNull { it.driverAcronym == driver.driverAcronym }
             if (result != null) {
                 points += result.points
             }

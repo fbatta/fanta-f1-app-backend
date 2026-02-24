@@ -19,7 +19,11 @@ data class RaceWeekend(
     @JsonSerialize(using = KotlinInstantSerializer::class)
     @JsonDeserialize(using = KotlinInstantDeserializer::class)
     val dateEnd: Instant,
-    val sessions: List<Session>
+    val sessions: List<Session>,
+    val circuitImage: String,
+    val countryName: String,
+    val countryFlag: String,
+    val circuitType: String
 ) {
     fun RaceWeekend.getSessionByType(sessionType: RaceWeekendSessionType): Session? {
         return sessions.firstOrNull { it.sessionType == sessionType }
