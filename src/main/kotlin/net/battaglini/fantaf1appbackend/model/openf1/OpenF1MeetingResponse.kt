@@ -2,9 +2,7 @@ package net.battaglini.fantaf1appbackend.model.openf1
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
-import kotlinx.datetime.LocalDateTime
-import kotlinx.datetime.UtcOffset
-import kotlinx.datetime.toInstant
+import kotlinx.datetime.*
 import net.battaglini.fantaf1appbackend.deserializer.OpenF1GmtOffsetDeserializer
 import net.battaglini.fantaf1appbackend.deserializer.OpenF1TimestampDeserializer
 import net.battaglini.fantaf1appbackend.model.RaceWeekend
@@ -45,17 +43,28 @@ data class OpenF1MeetingResponse(
         fun OpenF1MeetingResponse.toRace(
             raceId: String,
             sessions: List<RaceWeekend.Companion.Session> = emptyList()
-        ): RaceWeekend = RaceWeekend(
-            raceId = raceId,
-            openF1MeetingKey = meetingKey,
-            raceName = meetingName,
-            dateStart = dateStart.toInstant(gmtOffset),
-            dateEnd = dateEnd.toInstant(gmtOffset),
-            sessions = sessions,
-            circuitImage = circuitImage,
-            countryName = countryName,
-            countryFlag = countryFlag,
-            circuitType = circuitType
-        )
+        ): RaceWeekend {
+            val instantStart = dateStart.toInstant(gmtOffset)
+            val instantEnd = dateEnd.toInstant(gmtOffset)
+
+            val dateLineupOpen = instantStart.minus(6 * 24, DateTimeUnit.HOUR)
+            val dateLineupClose =
+                LocalDateTime(dateStart.year, dateStart.month, dateStart.day, 0, 0, 0).toInstant(gmtOffset)
+
+            return RaceWeekend(
+                raceId = raceId,
+                openF1MeetingKey = meetingKey,
+                raceName = meetingName,
+                dateStart = instantStart,
+                dateEnd = instantEnd,
+                sessions = sessions,
+                circuitImage = circuitImage,
+                countryName = countryName,
+                countryFlag = countryFlag,
+                circuitType = circuitType,
+                dateLineupOpen = dateLineupOpen,
+                dateLineupClose = dateLineupClose
+            )
+        }
     }
 }

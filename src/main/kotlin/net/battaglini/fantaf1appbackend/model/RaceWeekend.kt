@@ -23,7 +23,13 @@ data class RaceWeekend(
     val circuitImage: String,
     val countryName: String,
     val countryFlag: String,
-    val circuitType: String
+    val circuitType: String,
+    @JsonSerialize(using = KotlinInstantSerializer::class)
+    @JsonDeserialize(using = KotlinInstantDeserializer::class)
+    val dateLineupOpen: Instant,
+    @JsonSerialize(using = KotlinInstantSerializer::class)
+    @JsonDeserialize(using = KotlinInstantDeserializer::class)
+    val dateLineupClose: Instant
 ) {
     fun RaceWeekend.getSessionByType(sessionType: RaceWeekendSessionType): Session? {
         return sessions.firstOrNull { it.sessionType == sessionType }
