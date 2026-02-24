@@ -82,10 +82,31 @@ service cloud.firestore {
       allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
       allow update: if isSignedIn() && resource.data.ownerId == request.auth.uid;
     }
-  }
 
-  match /race_weekend_results/{raceWeekendResultId} {
-    allow read: if isSignedIn();
-    allow write: if false;
+    // 6. LINEUPS
+    // Create: Must be the owner of the lineup being created
+    // Update: same as above
+    // Read: anyone signed in can read
+    match /lineups/{lineupId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow update: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+    }
+
+    /// 7. RACE WEEKEND RESULTS
+    /// Read: anyone signed in can read
+    /// Write: nobody except the admin can write
+    match /race_weekend_results/{raceWeekendResultId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+
+    /// 8. DRIVER COSTS
+    /// Read: anyone signed in can read
+    /// Write: nobody except the admin can write
+    match /driver_costs/{driverId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
   }
 }
