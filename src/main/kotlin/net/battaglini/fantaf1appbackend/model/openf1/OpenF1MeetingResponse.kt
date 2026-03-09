@@ -47,7 +47,7 @@ data class OpenF1MeetingResponse(
             val instantStart = dateStart.toInstant(gmtOffset)
             val instantEnd = dateEnd.toInstant(gmtOffset)
 
-            val dateLineupOpen = instantStart.minus(6 * 24, DateTimeUnit.HOUR)
+            val dateLineupOpen = instantStart.minus(3 * 24, DateTimeUnit.HOUR)
             val dateLineupClose =
                 LocalDateTime(dateStart.year, dateStart.month, dateStart.day, 0, 0, 0).toInstant(gmtOffset)
 

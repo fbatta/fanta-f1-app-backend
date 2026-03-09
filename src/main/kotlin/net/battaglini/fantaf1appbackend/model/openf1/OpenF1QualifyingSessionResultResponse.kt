@@ -14,8 +14,8 @@ data class OpenF1QualifyingSessionResultResponse(
     val dns: Boolean,
     val dsq: Boolean,
     @JsonProperty("gap_to_leader")
-    val gapToLeader: List<Double>,
-    val duration: List<Double>,
+    val gapToLeader: List<Double?>,
+    val duration: List<Double?>,
     @JsonProperty("meeting_key")
     val meetingKey: Int,
     @JsonProperty("session_key")

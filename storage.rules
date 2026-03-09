@@ -20,6 +20,14 @@ service firebase.storage {
       // OR: allow read: if isAuthenticated(); // Only authenticated users can read
       // OR: allow read: if isAuthenticated() && isUserFile(userId); // Only the owner can read (if read is only for them)
     }
+
+    match /team_avatars/{userId}/{teamId}/{fileName} {
+      allow write: if isAuthenticated() &&
+                    isUserFile(userId) &&
+                    teamIsOwnedByUser(teamId) &&
+                    isImageFormat() &&
+                    isMax1MB();
+    }
     
     // Helper function to check if the user is authenticated
     function isAuthenticated() {
@@ -29,6 +37,11 @@ service firebase.storage {
     // Helper function to ensure the user is writing to their own folder
     function isUserFile(userId) {
       return request.auth.uid == userId;
+    }
+
+    function teamIsOwnedByUser(teamId) {
+      return firestore.get(
+        /databases/(default)/documents/teams/$(teamId)).data.ownerId == request.auth.uid;
     }
 
     // Helper function to restrict file size to a maximum of 1MB (1024 * 1024 bytes)

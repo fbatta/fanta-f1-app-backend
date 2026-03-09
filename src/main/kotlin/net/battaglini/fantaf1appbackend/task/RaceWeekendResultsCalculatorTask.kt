@@ -10,6 +10,7 @@ import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import net.battaglini.fantaf1appbackend.client.OpenF1Client
 import net.battaglini.fantaf1appbackend.configuration.ChannelConfiguration
+import net.battaglini.fantaf1appbackend.configuration.ResultsCalculatorProperties
 import net.battaglini.fantaf1appbackend.enums.TaskType
 import net.battaglini.fantaf1appbackend.model.*
 import net.battaglini.fantaf1appbackend.model.openf1.OpenF1MeetingResponse.Companion.toRace
@@ -31,6 +32,7 @@ import kotlin.uuid.Uuid
 @OptIn(ExperimentalUuidApi::class)
 @Component
 class RaceWeekendResultsCalculatorTask(
+    private val resultsCalculatorProperties: ResultsCalculatorProperties,
     private val practiceResultsService: PracticeResultsService,
     private val qualifyingResultsService: QualifyingResultsService,
     private val raceResultsService: RaceResultsService,
@@ -39,8 +41,12 @@ class RaceWeekendResultsCalculatorTask(
     private val driverRepository: DriverRepository,
     private val taskChannel: Channel<ChannelConfiguration.Companion.TaskChannelMessage>
 ) {
-    @Scheduled(fixedRate = 30_000, initialDelay = 60_000)
+    @Scheduled(fixedRate = 180_000, initialDelay = 15_000)
     suspend fun runTask() {
+        if (!resultsCalculatorProperties.enable) {
+            LOGGER.info("Skipping race weekend results calculation because it is disabled in app config")
+            return
+        }
         LOGGER.info("Calculating race weekend results")
 
         val now = Clock.System.now()
@@ -109,7 +115,16 @@ class RaceWeekendResultsCalculatorTask(
                 raceWeekend
             )
 
-            raceWeekendResultRepository.saveRaceWeekendResult(raceWeekendResult)
+            if (resultsCalculatorProperties.dryRun) {
+                LOGGER.info(
+                    """
+                    DRY RUN: race weekend results for ${raceWeekend.raceName}
+                    ${raceWeekendResult.toString()}
+                """.trimIndent()
+                )
+            } else {
+                raceWeekendResultRepository.saveRaceWeekendResult(raceWeekendResult)
+            }
 
             taskChannel.send(
                 ChannelConfiguration.Companion.TaskChannelMessage(
@@ -134,12 +149,13 @@ class RaceWeekendResultsCalculatorTask(
     ): RaceWeekendResult {
         val drivers = driverRepository.getDrivers().toList()
 
-        val practiceResults = driverPracticeResults.sortedByDescending { it.fastestLap }.mapIndexed { index, result ->
+        val practiceResults = driverPracticeResults.sortedBy { it.fastestLap }.mapIndexed { index, result ->
             Pair(result.driverAcronym, mapIndexToPoints(index))
         }
-        val qualifyingResults = driverQualifyingResults.sortedBy { it.finalPosition }.mapIndexed { index, result ->
-            Pair(result.driverAcronym, mapIndexToPoints(index))
-        }
+        val qualifyingResults =
+            driverQualifyingResults.sortedBy { it.finalPosition }.mapIndexed { index, result ->
+                Pair(result.driverAcronym, mapIndexToPoints(index))
+            }
         val sprintQualifyingResults =
             driverSprintQualifyingResults.sortedBy { it.finalPosition }.mapIndexed { index, result ->
                 Pair(result.driverAcronym, mapIndexToPoints(index))
@@ -154,7 +170,8 @@ class RaceWeekendResultsCalculatorTask(
         val results = drivers.map { driver ->
             val practiceResult = practiceResults.firstOrNull { it.first == driver.acronym }
             val qualifyingResult = qualifyingResults.firstOrNull { it.first == driver.acronym }
-            val sprintQualifyingResult = sprintQualifyingResults.firstOrNull { it.first == driver.acronym }
+            val sprintQualifyingResult =
+                sprintQualifyingResults.firstOrNull { it.first == driver.acronym }
             val raceResult = raceResults.firstOrNull { it.first == driver.acronym }
             val sprintRaceResult = sprintRaceResults.firstOrNull { it.first == driver.acronym }
             RaceWeekendResult.Companion.Result(
@@ -232,7 +249,7 @@ class RaceWeekendResultsCalculatorTask(
             sum += it.second
             dividend++
         }
-        return sum / dividend
+        return String.format("%.1f", sum / dividend).toDouble()
     }
 
     fun generateSessionId(meetingKey: Int, sessionKey: Int): String {

@@ -1,9 +1,17 @@
 package net.battaglini.fantaf1appbackend.service
 
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.toList
 import net.battaglini.fantaf1appbackend.client.OpenF1Client
+import net.battaglini.fantaf1appbackend.configuration.SeedingProperties
+import net.battaglini.fantaf1appbackend.exception.DriverNotFoundException
 import net.battaglini.fantaf1appbackend.model.Driver
+import net.battaglini.fantaf1appbackend.model.DriverCost
 import net.battaglini.fantaf1appbackend.model.openf1.OpenF1DriverResponse.Companion.toDriver
+import net.battaglini.fantaf1appbackend.model.request.UpdateDriversCostsRequest
+import net.battaglini.fantaf1appbackend.repository.DriverCostRepository
 import net.battaglini.fantaf1appbackend.repository.DriverRepository
 import org.slf4j.LoggerFactory
 import org.springframework.boot.context.event.ApplicationStartedEvent
@@ -16,10 +24,17 @@ import kotlin.uuid.Uuid
 @Service
 class DriverService(
     private val openF1Client: OpenF1Client,
-    private val driverRepository: DriverRepository
+    private val driverRepository: DriverRepository,
+    private val driverCostRepository: DriverCostRepository,
+    private val seedingProperties: SeedingProperties
 ) {
     @EventListener(ApplicationStartedEvent::class)
     suspend fun seedDrivers() {
+        if (!seedingProperties.drivers) {
+            LOGGER.info("Skipping F1 drivers' seeding because it is disabled in app config")
+            return
+        }
+
         try {
             LOGGER.info("Seeding F1 drivers...")
             val drivers = openF1Client.getDrivers(sessionKeys = listOf("latest")).map {
@@ -34,12 +49,25 @@ class DriverService(
         }
     }
 
+    suspend fun updateDriversCosts(costs: UpdateDriversCostsRequest) {
+        val drivers = driverRepository.getDrivers().toList()
+        val driversCosts = costs.driversCosts.map { cost ->
+            val driver = drivers.find { it.acronym.equals(cost.acronym, ignoreCase = true) }
+            if (driver != null) {
+                DriverCost(driver.driverId, cost.driverCost)
+            } else {
+                throw DriverNotFoundException("Driver with acronym ${cost.acronym} not found")
+            }
+        }
+        driverCostRepository.createOrUpdateDriversCosts(driversCosts)
+    }
+
     suspend fun getDriversInSessions(sessionKeys: List<Int>): Flow<Driver> {
-        val openF1Drivers = openF1Client.getDrivers(sessionKeys = sessionKeys.map { it.toString() })
+        val openF1Drivers = openF1Client.getDrivers(sessionKeys = sessionKeys.map { it.toString() }).toList()
         val driversInRepo = driverRepository.getDrivers()
 
         return driversInRepo.filter { driver ->
-            openF1Drivers.map { it.driverNumber }.any { it == driver.driverNumber }
+            openF1Drivers.any { it.nameAcronym == driver.acronym }
         }
     }
 

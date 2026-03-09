@@ -8,7 +8,6 @@ import net.battaglini.fantaf1appbackend.client.OpenF1Client
 import net.battaglini.fantaf1appbackend.enums.RaceWeekendSessionType
 import net.battaglini.fantaf1appbackend.model.DriverPracticeResult
 import net.battaglini.fantaf1appbackend.model.RaceWeekend
-import net.battaglini.fantaf1appbackend.model.openf1.OpenF1SessionResultResponse
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import kotlin.time.DurationUnit
@@ -38,13 +37,13 @@ class PracticeResultsService(
             return emptyFlow()
         }
 
-        val results = openF1Client.getResults<OpenF1SessionResultResponse>(
+        val results = openF1Client.getResults(
             meetingKey = raceWeekend.openF1MeetingKey,
             sessionKeys = sessions.map { it.second.toString() }
         ).toList()
         return driverService.getDriversInSessions(sessions.map { it.second }).map { driver ->
             val fastestLap = results.filter { it.driverNumber == driver.driverNumber }.fold(999_999.9, { acc, result ->
-                if (result.duration < acc) result.duration else acc
+                if (result.duration != null && result.duration < acc) result.duration else acc
             })
 
             DriverPracticeResult(

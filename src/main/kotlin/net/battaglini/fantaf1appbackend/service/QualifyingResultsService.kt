@@ -8,7 +8,6 @@ import net.battaglini.fantaf1appbackend.client.OpenF1Client
 import net.battaglini.fantaf1appbackend.enums.RaceWeekendSessionType
 import net.battaglini.fantaf1appbackend.model.DriverQualifyingResult
 import net.battaglini.fantaf1appbackend.model.RaceWeekend
-import net.battaglini.fantaf1appbackend.model.openf1.OpenF1QualifyingSessionResultResponse
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import kotlin.time.DurationUnit
@@ -41,10 +40,10 @@ class QualifyingResultsService(
         }
 
         val results =
-            openF1Client.getResults<OpenF1QualifyingSessionResultResponse>(sessionKeys = listOf(sessionKey.toString()))
+            openF1Client.getQualifyingResults(sessionKeys = listOf(sessionKey.toString()))
                 .toList()
         return driverService.getDriversInSessions(listOf(sessionKey)).map { driver ->
-            val result = results.first { it.driverNumber == driver.driverNumber }
+            val result = results.firstOrNull { it.driverNumber == driver.driverNumber }
             DriverQualifyingResult(
                 raceId = raceWeekend.raceId,
                 driverId = driver.driverId,
@@ -52,13 +51,16 @@ class QualifyingResultsService(
                 sessionType = session.sessionType,
                 driverNumber = driver.driverNumber,
                 driverAcronym = driver.acronym,
-                fastestLapQ1 = result.duration[0].toDuration(DurationUnit.SECONDS),
-                fastestLapQ2 = result.duration[1].toDuration(DurationUnit.SECONDS),
-                fastestLapQ3 = result.duration[2].toDuration(DurationUnit.SECONDS),
-                finalPosition = result.position,
-                dns = result.dns,
-                dnf = result.dnf,
-                dsq = result.dsq
+                fastestLapQ1 = result?.duration[0]?.toDuration(DurationUnit.SECONDS)
+                    ?: 9_999.toDuration(DurationUnit.SECONDS),
+                fastestLapQ2 = result?.duration[1]?.toDuration(DurationUnit.SECONDS)
+                    ?: 9_999.toDuration(DurationUnit.SECONDS),
+                fastestLapQ3 = result?.duration[2]?.toDuration(DurationUnit.SECONDS)
+                    ?: 9_999.toDuration(DurationUnit.SECONDS),
+                finalPosition = result?.position ?: 22,
+                dns = result?.dns ?: false,
+                dnf = result?.dnf ?: false,
+                dsq = result?.dsq ?: false
             )
         }
     }

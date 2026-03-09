@@ -5,7 +5,7 @@ import kotlin.time.Duration
 
 class DriverRaceResult(
     val fastestLap: Duration,
-    val startPosition: Int,
+    val startPosition: Int?,
     val finalPosition: Int?,
     val dns: Boolean,
     val dnf: Boolean,

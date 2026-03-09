@@ -44,10 +44,9 @@ service cloud.firestore {
     // Anyone can read profiles (for leaderboards), but users can only edit their own.
     // Crucially, we prevent users from editing their own 'privileges' field.
     match /users/{userId} {
-      allow read: if isSignedIn();
+      allow read: if isOwner(userId);
       allow create: if isOwner(userId);
-      allow update: if isOwner(userId) 
-                    && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['privileges'])); 
+      allow update: if isOwner(userId);
     }
     
     // 2. TEAMS

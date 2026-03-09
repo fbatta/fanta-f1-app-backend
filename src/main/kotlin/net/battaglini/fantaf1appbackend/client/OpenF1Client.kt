@@ -1,6 +1,7 @@
 package net.battaglini.fantaf1appbackend.client
 
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 import net.battaglini.fantaf1appbackend.configuration.CacheConfiguration
 import net.battaglini.fantaf1appbackend.configuration.CacheConfiguration.Companion.MEETING_SESSIONS_CACHE
 import net.battaglini.fantaf1appbackend.configuration.OpenF1ApiProperties
@@ -8,6 +9,7 @@ import net.battaglini.fantaf1appbackend.enums.openf1.OpenF1SessionName
 import net.battaglini.fantaf1appbackend.enums.openf1.OpenF1TyreCompound
 import net.battaglini.fantaf1appbackend.model.openf1.*
 import org.springframework.cache.annotation.Cacheable
+import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
 import org.springframework.util.MultiValueMapAdapter
 import org.springframework.web.reactive.function.client.WebClient
@@ -139,10 +141,29 @@ class OpenF1Client(
      * @return A [Flow] emitting [OpenF1SessionResultResponse] objects.
      * @throws OpenF1ClientRequestException If neither meetingKey nor sessionKey is provided.
      */
-    fun <K> getResults(
+    fun getResults(
         meetingKey: Int? = null,
         sessionKeys: List<String> = emptyList()
-    ): Flow<K> {
+    ): Flow<OpenF1SessionResultResponse> {
+        if (meetingKey == null && sessionKeys.isEmpty()) {
+            throw OpenF1ClientRequestException("One of meetingKey or sessionKey are required")
+        }
+
+        return webClient
+            .get()
+            .uri { uriBuilder ->
+                uriBuilder.path("/session_result")
+                addMeetingAndSessionKeyParams(uriBuilder, meetingKey, sessionKeys)
+
+                uriBuilder.build()
+            }
+            .exchangeToFlow { it.bodyToFlow() }
+    }
+
+    fun getQualifyingResults(
+        meetingKey: Int? = null,
+        sessionKeys: List<String> = emptyList()
+    ): Flow<OpenF1QualifyingSessionResultResponse> {
         if (meetingKey == null && sessionKeys.isEmpty()) {
             throw OpenF1ClientRequestException("One of meetingKey or sessionKey are required")
         }
@@ -198,7 +219,12 @@ class OpenF1Client(
 
                 uriBuilder.build()
             }
-            .exchangeToFlow { it.bodyToFlow() }
+            .exchangeToFlow {
+                if (it.statusCode() == HttpStatus.NOT_FOUND) {
+                    return@exchangeToFlow emptyFlow()
+                }
+                it.bodyToFlow()
+            }
     }
 
     /**

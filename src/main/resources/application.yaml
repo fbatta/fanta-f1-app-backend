@@ -2,6 +2,11 @@ spring:
   application:
     name: fanta-f1-app-backend
 
+logging:
+  level:
+    root: info
+    "net.battaglini.fantaf1appbackend.controller": debug
+
 jolpica:
   base-url: https://api.jolpi.ca/ergast/f1/
 
@@ -24,3 +29,10 @@ management:
     metrics:
       export:
         enabled: false
+seeding:
+  drivers: false
+  race-weekends: false
+
+results-calculator:
+  enable: true
+  dry-run: true

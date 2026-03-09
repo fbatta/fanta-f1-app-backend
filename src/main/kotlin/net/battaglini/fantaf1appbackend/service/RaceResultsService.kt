@@ -1,6 +1,10 @@
 package net.battaglini.fantaf1appbackend.service
 
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.toList
 import net.battaglini.fantaf1appbackend.client.OpenF1Client
 import net.battaglini.fantaf1appbackend.enums.RaceWeekendSessionType
 import net.battaglini.fantaf1appbackend.model.Driver
@@ -30,14 +34,15 @@ class RaceResultsService(
             val sessionKey = session?.openF1SessionKey
 
             if (sessionKey == null) {
-                LOGGER.error("No race session found for race ${raceWeekend.raceId}")
+                LOGGER.error("No (sprint)race session found for race ${raceWeekend.raceId}")
                 return emptyFlow()
             }
 
             val raceResults =
-                openF1Client.getResults<OpenF1SessionResultResponse>(sessionKeys = listOf(sessionKey.toString()))
+                openF1Client.getResults(sessionKeys = listOf(sessionKey.toString()))
                     .toList()
-            val startingGrid = openF1Client.getStartingGrid(sessionKey = sessionKey.toString()).toList()
+//            val startingGrid = openF1Client.getStartingGrid(sessionKey = sessionKey.toString()).toList()
+            val startingGrid = emptyList<OpenF1StartingGridResponse>()
             return driverService.getDriversInSessions(listOf(sessionKey))
                 .map { driver ->
                     getDriverResultForRace(sessionKey, driver, startingGrid, raceResults, raceWeekend, session)
@@ -56,20 +61,24 @@ class RaceResultsService(
         raceWeekend: RaceWeekend,
         session: RaceWeekend.Companion.Session,
     ): DriverRaceResult {
-        val numberOfOvertakes = openF1Client.getOvertakes(
-            sessionKey = sessionKey.toString(),
-            overtakingDriverNumber = driver.driverNumber
-        ).count()
-        var fastestLap = 999_999.00
+//        TODO: fix getting number of overtakes
+//        val numberOfOvertakes = openF1Client.getOvertakes(
+//            sessionKey = sessionKey.toString(),
+//            overtakingDriverNumber = driver.driverNumber
+//        ).count()
+//        delay(1500)
+
+        var fastestLap = 9_999.0
         var speedAtTrap = 0.0
         openF1Client.getLaps(sessionKey = sessionKey.toString(), driverNumber = driver.driverNumber)
             .collect { lap ->
-                if (lap.lapDuration < fastestLap)
+                if (lap.lapDuration != null && lap.lapDuration < fastestLap)
                     fastestLap = lap.lapDuration
-                if (lap.speedTrapSpeed > speedAtTrap)
+                if (lap.speedTrapSpeed != null && lap.speedTrapSpeed > speedAtTrap)
                     speedAtTrap = lap.speedTrapSpeed
             }
-        val startPosition = startingGrid.first { it.driverNumber == driver.driverNumber }.position
+        delay(2000)
+        val startPosition = startingGrid.firstOrNull { it.driverNumber == driver.driverNumber }?.position
         val result = results.first { it.driverNumber == driver.driverNumber }
 
         return DriverRaceResult(
@@ -81,11 +90,11 @@ class RaceResultsService(
             driverAcronym = driver.acronym,
             fastestLap = fastestLap.toDuration(DurationUnit.SECONDS),
             startPosition = startPosition,
-            finalPosition = result.position,
+            finalPosition = result.position ?: 22,
             dns = result.dns,
             dnf = result.dnf,
             dsq = result.dsq,
-            numberOfOvertakes = numberOfOvertakes,
+            numberOfOvertakes = 0,
             maximumSpeedAtTrap = speedAtTrap
         )
     }

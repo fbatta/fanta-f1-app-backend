@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.toList
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import net.battaglini.fantaf1appbackend.client.OpenF1Client
+import net.battaglini.fantaf1appbackend.configuration.SeedingProperties
 import net.battaglini.fantaf1appbackend.model.openf1.OpenF1MeetingResponse.Companion.toRace
 import net.battaglini.fantaf1appbackend.model.openf1.OpenF1SessionResponse.Companion.toRaceWeekendSession
 import net.battaglini.fantaf1appbackend.repository.RaceRepository
@@ -21,10 +22,15 @@ import kotlin.uuid.Uuid
 @Service
 class RaceWeekendService(
     private val openF1Client: OpenF1Client,
-    private val raceRepository: RaceRepository
+    private val raceRepository: RaceRepository,
+    private val seedingProperties: SeedingProperties
 ) {
     @EventListener(ApplicationStartedEvent::class)
     suspend fun seedRaceWeekends() {
+        if (!seedingProperties.raceWeekends) {
+            LOGGER.info("Skipping F1 race weekends' seeding because it is disabled in app config")
+            return
+        }
         try {
             LOGGER.info("Seeding F1 race weekends...")
             val year = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).year

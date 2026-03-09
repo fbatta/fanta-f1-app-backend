@@ -36,7 +36,7 @@ class TeamRepository(
         return querySnapshot.map { documentSnapshot ->
             Pair(
                 documentSnapshot,
-                documentSnapshot.toObject(Team::class.java)
+                objectMapper.convertValue(documentSnapshot.data, Team::class.java)
             )
         }.asFlow()
     }
