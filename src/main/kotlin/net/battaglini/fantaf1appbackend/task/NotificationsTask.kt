@@ -46,6 +46,9 @@ class NotificationsTask(
         do {
             val lobbies = lobbyRepository.getLobbies(cursor).toList()
             LOGGER.info("Retrieved {} lobbies", lobbies.size)
+            if (lobbies.isEmpty()) {
+                break
+            }
             cursor = lobbies.last().first
 
             for (lobby in lobbies.map { it.second }) {

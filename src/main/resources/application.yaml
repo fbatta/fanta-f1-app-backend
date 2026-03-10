@@ -35,4 +35,4 @@ seeding:
 
 results-calculator:
   enable: true
-  dry-run: true
+  dry-run: false

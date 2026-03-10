@@ -13,7 +13,7 @@ service firebase.storage {
       allow write: if isAuthenticated() && 
                     isUserFile(userId) && 
                     isImageFormat() && 
-                    isMax1MB();
+                    isMax10MB();
 
       // You can add a read rule for public access or only for the user
       allow read: if true; // Allows anyone to read (public avatar)
@@ -26,7 +26,8 @@ service firebase.storage {
                     isUserFile(userId) &&
                     teamIsOwnedByUser(teamId) &&
                     isImageFormat() &&
-                    isMax1MB();
+                    isMax10MB();
+      allow read: if isAuthenticated();
     }
     
     // Helper function to check if the user is authenticated
@@ -45,10 +46,10 @@ service firebase.storage {
     }
 
     // Helper function to restrict file size to a maximum of 1MB (1024 * 1024 bytes)
-    function isMax1MB() {
+    function isMax10MB() {
       // The `request.resource.size` is only available on 'create' and 'update'.
       // When a file is being uploaded, `request.resource` contains its metadata, including size.
-      return request.resource.size < 1 * 1024 * 1024;
+      return request.resource.size < 10 * 1024 * 1024;
     }
 
     // Helper function to allow only common image MIME types (JPEG, PNG, GIF, WebP)
