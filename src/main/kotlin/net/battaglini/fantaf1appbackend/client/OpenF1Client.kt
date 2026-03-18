@@ -287,37 +287,12 @@ class OpenF1Client(
 
                 uriBuilder.build()
             }
-            .exchangeToFlow { it.bodyToFlow() }
-    }
-
-    /**
-     * Retrieves the starting grid for a session.
-     *
-     * @param meetingKey The meeting key to filter by.
-     * @param sessionKey The session key to filter by.
-     * @return A [Flow] emitting [OpenF1StartingGridResponse] objects.
-     * @throws OpenF1ClientRequestException If neither meetingKey nor sessionKey is provided.
-     */
-    fun getStartingGrid(
-        meetingKey: Int? = null,
-        sessionKey: String? = null,
-    ): Flow<OpenF1StartingGridResponse> {
-        if (meetingKey == null && sessionKey == null) {
-            throw OpenF1ClientRequestException("One of meetingKey or sessionKey are required")
-        }
-
-        return webClient
-            .get()
-            .uri { uriBuilder ->
-                uriBuilder.path("/starting_grid")
-                addMeetingAndSessionKeyParams(
-                    uriBuilder,
-                    meetingKey,
-                    sessionKey?.let { listOf(sessionKey) } ?: emptyList())
-
-                uriBuilder.build()
+            .exchangeToFlow { response ->
+                if (response.statusCode() == HttpStatus.NOT_FOUND) {
+                    return@exchangeToFlow emptyFlow()
+                }
+                response.bodyToFlow()
             }
-            .exchangeToFlow { it.bodyToFlow() }
     }
 
     private fun addMeetingAndSessionKeyParams(uriBuilder: UriBuilder, meetingKey: Int?, sessionKeys: List<String>) {

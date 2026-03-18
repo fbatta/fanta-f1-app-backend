@@ -26,11 +26,15 @@ class RaceWeekendService(
     private val seedingProperties: SeedingProperties
 ) {
     @EventListener(ApplicationStartedEvent::class)
-    suspend fun seedRaceWeekends() {
+    suspend fun onStart() {
         if (!seedingProperties.raceWeekends) {
             LOGGER.info("Skipping F1 race weekends' seeding because it is disabled in app config")
-            return
+        } else {
+            seedRaceWeekends()
         }
+    }
+
+    suspend fun seedRaceWeekends() {
         try {
             LOGGER.info("Seeding F1 race weekends...")
             val year = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).year

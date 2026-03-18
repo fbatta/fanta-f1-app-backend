@@ -4,6 +4,7 @@ import net.battaglini.fantaf1appbackend.exception.DriverNotFoundException
 import net.battaglini.fantaf1appbackend.exception.InvalidRequestException
 import net.battaglini.fantaf1appbackend.model.request.UpdateDriversCostsRequest
 import net.battaglini.fantaf1appbackend.service.DriverService
+import net.battaglini.fantaf1appbackend.service.RaceWeekendService
 import org.springframework.http.HttpEntity
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.PostMapping
@@ -13,6 +14,7 @@ import tools.jackson.databind.ObjectMapper
 @RestController
 class AdminOperationsController(
     private val driverService: DriverService,
+    private val raceWeekendService: RaceWeekendService,
     private val objectMapper: ObjectMapper
 ) {
     @PostMapping("/admin/drivers/costs", consumes = [MediaType.APPLICATION_JSON_VALUE])
@@ -28,4 +30,21 @@ class AdminOperationsController(
         }
     }
 
+    @PostMapping("/admin/drivers/seed")
+    suspend fun seedDrivers() {
+        try {
+            driverService.seedDrivers()
+        } catch (e: Exception) {
+            throw RuntimeException(e.message)
+        }
+    }
+
+    @PostMapping("/admin/race-weekends/seed")
+    suspend fun seedRaceWeekends() {
+        try {
+            raceWeekendService.seedRaceWeekends()
+        } catch (e: Exception) {
+            throw RuntimeException(e.message)
+        }
+    }
 }

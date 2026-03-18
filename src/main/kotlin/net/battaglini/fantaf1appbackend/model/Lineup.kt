@@ -23,8 +23,10 @@ data class Lineup(
 ) {
     companion object {
         data class LineupDriver(
+            val driverId: String,
             val driverNumber: Int,
             val driverAcronym: String,
+            val driverCost: Double
         )
     }
 }

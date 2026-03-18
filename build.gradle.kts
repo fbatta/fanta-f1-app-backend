@@ -1,11 +1,14 @@
 val firebaseAdminVersion = "9.7.1"
 val kotlinxDateTimeVersion = "0.7.1"
 val caffeineVersion = "3.2.3"
+val okhttp3Version = "5.3.2"
+val mockkVersion = "1.14.9"
+val springMockkVersion = "4.0.2"
 
 plugins {
     kotlin("jvm") version "2.3.0"
     kotlin("plugin.spring") version "2.3.0"
-    id("org.springframework.boot") version "4.0.2"
+    id("org.springframework.boot") version "4.0.3"
     id("io.spring.dependency-management") version "1.1.7"
     id("com.github.ben-manes.versions") version "0.53.0"
 }
@@ -25,6 +28,7 @@ repositories {
 }
 
 dependencies {
+    implementation(platform("com.squareup.okhttp3:okhttp-bom:$okhttp3Version"))
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-security-oauth2-resource-server")
@@ -47,6 +51,9 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-webflux-test")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
+    testImplementation("com.squareup.okhttp3:mockwebserver")
+    testImplementation("io.mockk:mockk:$mockkVersion")
+    testImplementation("com.ninja-squad:springmockk:$springMockkVersion")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 

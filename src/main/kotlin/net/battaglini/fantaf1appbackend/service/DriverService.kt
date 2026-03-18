@@ -29,12 +29,15 @@ class DriverService(
     private val seedingProperties: SeedingProperties
 ) {
     @EventListener(ApplicationStartedEvent::class)
-    suspend fun seedDrivers() {
+    suspend fun onStart() {
         if (!seedingProperties.drivers) {
             LOGGER.info("Skipping F1 drivers' seeding because it is disabled in app config")
-            return
+        } else {
+            seedDrivers()
         }
+    }
 
+    suspend fun seedDrivers() {
         try {
             LOGGER.info("Seeding F1 drivers...")
             val drivers = openF1Client.getDrivers(sessionKeys = listOf("latest")).map {
