@@ -3,11 +3,13 @@ package net.battaglini.fantaf1appbackend.controller
 import net.battaglini.fantaf1appbackend.exception.DriverNotFoundException
 import net.battaglini.fantaf1appbackend.exception.InvalidRequestException
 import net.battaglini.fantaf1appbackend.model.request.UpdateDriversCostsRequest
+import net.battaglini.fantaf1appbackend.model.request.UpdateDriversSummariesRequest
 import net.battaglini.fantaf1appbackend.service.DriverService
 import net.battaglini.fantaf1appbackend.service.RaceWeekendService
 import org.springframework.http.HttpEntity
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
 import tools.jackson.databind.ObjectMapper
 
@@ -45,6 +47,12 @@ class AdminOperationsController(
             raceWeekendService.seedRaceWeekends()
         } catch (e: Exception) {
             throw RuntimeException(e.message)
+        }
+    }
+    @PostMapping("/admin/drivers/summaries")
+    suspend fun updateDriversSummaries(@RequestBody body: UpdateDriversSummariesRequest) {
+        for (acronym in body.acronyms) {
+            driverService.updateDriverSummary(acronym)
         }
     }
 }

@@ -195,7 +195,9 @@ class RaceWeekendResultsCalculatorTask(
             createdAt = Clock.System.now(),
             updatedAt = Clock.System.now(),
             version = 1,
-            results = results
+            results = results,
+            // TODO: change this, passing actual race summary paragraphs
+            summaryParagraphs = null
         )
     }
 

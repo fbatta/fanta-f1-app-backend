@@ -17,7 +17,8 @@ data class RaceWeekendResult(
     @JsonDeserialize(using = KotlinInstantDeserializer::class)
     val updatedAt: Instant,
     val version: Int,
-    val results: List<Result>
+    val results: List<Result>,
+    val summaryParagraphs: List<String>?
 ) {
     companion object {
         data class Result(
