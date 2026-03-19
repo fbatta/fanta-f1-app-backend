@@ -1,6 +1,7 @@
-val firebaseAdminVersion = "9.7.1"
+val firebaseAdminVersion = "9.8.0"
 val kotlinxDateTimeVersion = "0.7.1"
 val caffeineVersion = "3.2.3"
+val googleGenAIVersion = "1.43.0"
 val okhttp3Version = "5.3.2"
 val mockkVersion = "1.14.9"
 val springMockkVersion = "4.0.2"
@@ -42,6 +43,7 @@ dependencies {
     implementation("com.google.firebase:firebase-admin:$firebaseAdminVersion")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:$kotlinxDateTimeVersion")
     implementation("com.github.ben-manes.caffeine:caffeine:$caffeineVersion")
+    implementation("com.google.genai:google-genai:$googleGenAIVersion")
     runtimeOnly("io.micrometer:micrometer-registry-influx")
     testImplementation("org.springframework.boot:spring-boot-starter-actuator-test")
     testImplementation("org.springframework.boot:spring-boot-starter-quartz-test")

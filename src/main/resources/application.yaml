@@ -24,6 +24,13 @@ firebase:
     pagination:
       query-limit: 100
 
+google:
+  genai:
+    chat-model: 'gemini-flash-latest'
+    default-output-tokens: 200
+    image-model: 'imagen-3.0-generate-002'
+    api-key: ${GOOGLE_GENAI_API_KEY}
+
 management:
   influx:
     metrics:
