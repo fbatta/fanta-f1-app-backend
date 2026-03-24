@@ -1,0 +1,22 @@
+info:
+  name: Send race weekend result notifications
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: "{{baseUrl}}/notifications/race-weekend-results-available/send"
+  body:
+    type: json
+    data: |-
+      {
+        "type": "raceWeekendResultsAvailable",
+        "raceId": "00000000-0000-04ff-0000-0000000007ea"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
