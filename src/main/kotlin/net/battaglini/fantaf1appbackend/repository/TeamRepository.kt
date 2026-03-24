@@ -45,7 +45,7 @@ class TeamRepository(
         val querySnapshot = withContext(Dispatchers.IO) {
             firestore.collection(collectionName).whereEqualTo(Team::lobbyId.name, lobbyId).get().get()
         }
-        return querySnapshot.map { team -> team.toObject(Team::class.java) }.asFlow()
+        return querySnapshot.map { team -> objectMapper.convertValue(team.data, Team::class.java) }.asFlow()
     }
 
     fun updateTeamInTransaction(team: Team, transaction: Transaction) {

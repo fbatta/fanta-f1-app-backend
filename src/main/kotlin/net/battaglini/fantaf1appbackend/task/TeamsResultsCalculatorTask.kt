@@ -50,7 +50,7 @@ class TeamsResultsCalculatorTask(
         calculateTeamsResults(raceWeekendResult)
         userNotificationChannel.send(
             ChannelConfiguration.Companion.UserNotificationChannelMessage(
-                UserNotificationType.RACE_WEEKEND_CALCULATION_COMPLETED,
+                UserNotificationType.RACE_WEEKEND_RESULTS_AVAILABLE,
                 raceWeekendResult
             )
         )

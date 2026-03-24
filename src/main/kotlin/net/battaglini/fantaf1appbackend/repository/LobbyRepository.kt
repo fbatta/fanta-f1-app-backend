@@ -11,6 +11,7 @@ import kotlinx.datetime.toLocalDateTime
 import net.battaglini.fantaf1appbackend.configuration.FirebaseProperties
 import net.battaglini.fantaf1appbackend.model.Lobby
 import org.springframework.stereotype.Repository
+import tools.jackson.databind.ObjectMapper
 import kotlin.time.Clock
 
 /**
@@ -23,7 +24,8 @@ import kotlin.time.Clock
 @Repository
 class LobbyRepository(
     private val firestoreInstance: Firestore,
-    private val firebaseProperties: FirebaseProperties
+    private val firebaseProperties: FirebaseProperties,
+    private val objectMapper: ObjectMapper
 ) {
     /**
      * Retrieves a paginated flow of lobbies for a specific year.
@@ -41,7 +43,6 @@ class LobbyRepository(
         val querySnapshot = withContext(Dispatchers.IO) {
             var query = firestoreInstance
                 .collection(COLLECTION_PATH)
-                .whereEqualTo(Lobby::year.name, year)
                 .limit(firebaseProperties.firestore.pagination.queryLimit)
 
             cursor?.also { query = query.startAfter(cursor) }
@@ -51,7 +52,7 @@ class LobbyRepository(
         return querySnapshot.map { documentSnapshot ->
             Pair(
                 documentSnapshot,
-                documentSnapshot.toObject(Lobby::class.java)
+                objectMapper.convertValue(documentSnapshot.data, Lobby::class.java)
             )
         }.asFlow()
     }

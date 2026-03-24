@@ -11,28 +11,28 @@ http:
     data: |-
       {
         "driversCosts": [
-          { "acronym": "VER", "driverCost": 147.0 },
+          { "acronym": "VER", "driverCost": 146.0 },
           { "acronym": "HAM", "driverCost": 132.0 },
-          { "acronym": "Pia", "driverCost": 112.0 },
+          { "acronym": "Pia", "driverCost": 114.0 },
           { "acronym": "Lec", "driverCost": 98.0 },
           { "acronym": "Nor", "driverCost": 94.0 },
           { "acronym": "Bot", "driverCost": 72.0 },
-          { "acronym": "Rus", "driverCost": 69.0 },
-          { "acronym": "Ant", "driverCost": 67.0 },
-          { "acronym": "Sai", "driverCost": 58.0 },
-          { "acronym": "Per", "driverCost": 58.0 },
+          { "acronym": "Rus", "driverCost": 70.0 },
+          { "acronym": "Ant", "driverCost": 75.0 },
+          { "acronym": "Sai", "driverCost": 57.0 },
+          { "acronym": "Per", "driverCost": 57.0 },
           { "acronym": "Alo", "driverCost": 56.0 },
           { "acronym": "Oco", "driverCost": 26.0 },
-          { "acronym": "Gas", "driverCost": 25.0 },
+          { "acronym": "Gas", "driverCost": 26.0 },
           { "acronym": "Hul", "driverCost": 24.0 },
           { "acronym": "Alb", "driverCost": 24.0 },
-          { "acronym": "Had", "driverCost": 21.0 },
-          { "acronym": "Bea", "driverCost": 19.0 },
+          { "acronym": "Had", "driverCost": 22.0 },
+          { "acronym": "Bea", "driverCost": 22.0 },
           { "acronym": "Str", "driverCost": 17.0 },
-          { "acronym": "Law", "driverCost": 12.0 },
+          { "acronym": "Law", "driverCost": 14.0 },
           { "acronym": "Bor", "driverCost": 8.0 },
-          { "acronym": "Col", "driverCost": 1.0 },
-          { "acronym": "Lin", "driverCost": 4.0 }
+          { "acronym": "Col", "driverCost": 2.0 },
+          { "acronym": "Lin", "driverCost": 2.0 }
           ]
       }
   auth: inherit

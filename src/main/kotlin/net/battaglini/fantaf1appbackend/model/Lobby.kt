@@ -11,7 +11,6 @@ data class Lobby(
     val lobbyName: String,
     val lobbyPassword: String,
     val ownerId: String,
-    val year: Int,
     @JsonSerialize(using = KotlinInstantSerializer::class)
     @JsonDeserialize(using = KotlinInstantDeserializer::class)
     val createdAt: Instant,

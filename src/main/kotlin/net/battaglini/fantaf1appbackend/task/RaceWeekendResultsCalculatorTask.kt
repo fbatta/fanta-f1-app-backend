@@ -62,7 +62,7 @@ class RaceWeekendResultsCalculatorTask(
                 return
             }
             val existingResults =
-                raceWeekendResultRepository.getRaceWeekendResult(openF1MeetingKey = meeting.meetingKey)
+                raceWeekendResultRepository.findRaceWeekendResult(openF1MeetingKey = meeting.meetingKey)
 
             if (existingResults != null) {
                 LOGGER.info(
