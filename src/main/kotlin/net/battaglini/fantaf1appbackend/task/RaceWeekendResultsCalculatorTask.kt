@@ -39,7 +39,8 @@ class RaceWeekendResultsCalculatorTask(
     private val raceWeekendResultRepository: RaceWeekendResultRepository,
     private val openF1Client: OpenF1Client,
     private val driverRepository: DriverRepository,
-    private val taskChannel: Channel<ChannelConfiguration.Companion.TaskChannelMessage>
+    private val taskChannel: Channel<ChannelConfiguration.Companion.TaskChannelMessage>,
+    private val clock: Clock
 ) {
     @Scheduled(fixedRate = 180_000, initialDelay = 15_000)
     suspend fun runTask() {
@@ -49,7 +50,7 @@ class RaceWeekendResultsCalculatorTask(
         }
         LOGGER.info("Calculating race weekend results")
 
-        val now = Clock.System.now()
+        val now = clock.now()
         val nowLocal = now.toLocalDateTime(TimeZone.currentSystemDefault())
         try {
             val meeting = openF1Client.getRaces(year = nowLocal.year).firstOrNull { meeting ->
@@ -84,17 +85,17 @@ class RaceWeekendResultsCalculatorTask(
             )
             val combinedPracticeResults =
                 practiceResultsService.getDriversResultsForCombinedPractice(raceWeekend).toList()
-            delay(2000)
+            delay(2000.toDuration(DurationUnit.MILLISECONDS))
             val qualifyingResults = qualifyingResultsService
                 .getDriversResultsForQualifying(raceWeekend, false)
                 .toList()
-            delay(2000)
+            delay(2000.toDuration(DurationUnit.MILLISECONDS))
             val sprintQualifyingResults = qualifyingResultsService
                 .getDriversResultsForQualifying(raceWeekend, true)
                 .toList()
-            delay(2000)
+            delay(2000.toDuration(DurationUnit.MILLISECONDS))
             val raceResults = raceResultsService.getResultsForRace(raceWeekend, false).toList()
-            delay(2000)
+            delay(2000.toDuration(DurationUnit.MILLISECONDS))
             val sprintRaceResults = raceResultsService.getResultsForRace(raceWeekend, true).toList()
 
             if (combinedPracticeResults.isEmpty() || qualifyingResults.isEmpty() || raceResults.isEmpty()) {
@@ -119,19 +120,19 @@ class RaceWeekendResultsCalculatorTask(
                 LOGGER.info(
                     """
                     DRY RUN: race weekend results for ${raceWeekend.raceName}
-                    ${raceWeekendResult.toString()}
+                    $raceWeekendResult
                 """.trimIndent()
                 )
             } else {
                 raceWeekendResultRepository.saveRaceWeekendResult(raceWeekendResult)
-            }
 
-            taskChannel.send(
-                ChannelConfiguration.Companion.TaskChannelMessage(
-                    TaskType.RACE_WEEKEND_RESULTS_CALCULATION_COMPLETED,
-                    raceWeekendResult
+                taskChannel.send(
+                    ChannelConfiguration.Companion.TaskChannelMessage(
+                        TaskType.RACE_WEEKEND_RESULTS_CALCULATION_COMPLETED,
+                        raceWeekendResult
+                    )
                 )
-            )
+            }
 
             LOGGER.info("Finished calculating race weekend results")
         } catch (e: Exception) {
@@ -192,8 +193,8 @@ class RaceWeekendResultsCalculatorTask(
             raceId = raceWeekend.raceId,
             raceName = raceWeekend.raceName,
             openF1MeetingKey = raceWeekend.openF1MeetingKey,
-            createdAt = Clock.System.now(),
-            updatedAt = Clock.System.now(),
+            createdAt = clock.now(),
+            updatedAt = clock.now(),
             version = 1,
             results = results,
             // TODO: change this, passing actual race summary paragraphs

@@ -20,12 +20,29 @@ data class RaceWeekendResult(
     val results: List<Result>,
     val summaryParagraphs: List<String>?
 ) {
+    override fun toString(): String {
+        return """
+            Race name: $raceName
+            Race ID: $raceId
+            Open F1 meeting key: $openF1MeetingKey
+            Results:
+            $results
+        }
+        """.trimIndent()
+    }
+
     companion object {
         data class Result(
             val driverId: String,
             val driverNumber: Int,
             val driverAcronym: String,
             val points: Double
-        )
+        ) {
+            override fun toString(): String {
+                return """
+                    $driverAcronym: $points\n
+                """.trimIndent()
+            }
+        }
     }
 }

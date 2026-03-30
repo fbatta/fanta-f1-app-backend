@@ -13,7 +13,7 @@ data class OpenF1DriverResponse(
     @JsonProperty("full_name")
     val fullName: String,
     @JsonProperty("headshot_url")
-    val headshotUrl: String,
+    val headshotUrl: String?,
     @JsonProperty("last_name")
     val lastName: String,
     @JsonProperty("meeting_key")
@@ -35,7 +35,7 @@ data class OpenF1DriverResponse(
             initialCost = 0,
             isActive = true,
             name = fullName,
-            driverAvatar = headshotUrl,
+            driverAvatar = headshotUrl ?: "",
             teamName = teamName,
             teamColour = teamColour,
         )

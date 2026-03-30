@@ -25,7 +25,8 @@ import kotlin.time.Clock
 class LobbyRepository(
     private val firestoreInstance: Firestore,
     private val firebaseProperties: FirebaseProperties,
-    private val objectMapper: ObjectMapper
+    private val objectMapper: ObjectMapper,
+    private val clock: Clock
 ) {
     /**
      * Retrieves a paginated flow of lobbies for a specific year.
@@ -36,7 +37,7 @@ class LobbyRepository(
      */
     suspend fun getLobbies(
         cursor: DocumentSnapshot? = null,
-        year: Int = Clock.System.now().toLocalDateTime(
+        year: Int = clock.now().toLocalDateTime(
             TimeZone.UTC
         ).year
     ): Flow<Pair<DocumentSnapshot, Lobby>> {

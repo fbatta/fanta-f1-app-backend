@@ -2,6 +2,8 @@ package net.battaglini.fantaf1appbackend.repository
 
 import com.google.cloud.firestore.Firestore
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.withContext
 import net.battaglini.fantaf1appbackend.model.RaceWeekendResult
 import org.springframework.stereotype.Repository
@@ -66,6 +68,20 @@ class RaceWeekendResultRepository(
         } catch (e: NoSuchElementException) {
             return null
         }
+    }
+
+    /**
+     * Retrieves a flow of [RaceWeekendResult] objects for the given list of race IDs.
+     *
+     * @param raceIds A list of unique identifiers for the races.
+     * @return A [Flow] emitting [RaceWeekendResult] objects found in the repository.
+     */
+    suspend fun getRaceWeekendResults(raceIds: List<String>): Flow<RaceWeekendResult> {
+        return withContext(Dispatchers.IO) {
+            firestoreInstance.collection(COLLECTION_PATH)
+                .whereIn(RaceWeekendResult::raceId.name, raceIds)
+                .get().get()
+        }.map { objectMapper.convertValue(it.data, RaceWeekendResult::class.java) }.asFlow()
     }
 
     companion object {

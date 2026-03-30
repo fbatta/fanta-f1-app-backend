@@ -15,6 +15,8 @@ import org.springframework.boot.context.event.ApplicationStartedEvent
 import org.springframework.context.event.EventListener
 import org.springframework.stereotype.Service
 import kotlin.time.Clock
+import kotlin.time.DurationUnit
+import kotlin.time.toDuration
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -23,7 +25,8 @@ import kotlin.uuid.Uuid
 class RaceWeekendService(
     private val openF1Client: OpenF1Client,
     private val raceRepository: RaceRepository,
-    private val seedingProperties: SeedingProperties
+    private val seedingProperties: SeedingProperties,
+    private val clock: Clock
 ) {
     @EventListener(ApplicationStartedEvent::class)
     suspend fun onStart() {
@@ -37,12 +40,12 @@ class RaceWeekendService(
     suspend fun seedRaceWeekends() {
         try {
             LOGGER.info("Seeding F1 race weekends...")
-            val year = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).year
+            val year = clock.now().toLocalDateTime(TimeZone.currentSystemDefault()).year
 
             val races = openF1Client.getRaces(year = year).map { meeting ->
                 val sessions = openF1Client.getSessions(meeting.meetingKey)
                     .map { it.toRaceWeekendSession(calculateSessionId(it.sessionKey, it.meetingKey)) }
-                delay(100)
+                delay(100.toDuration(DurationUnit.MILLISECONDS))
                 meeting.toRace(calculateRaceId(meeting.meetingKey, meeting.year), sessions.toList())
             }.toList()
             raceRepository.createOrUpdateRaces(races)

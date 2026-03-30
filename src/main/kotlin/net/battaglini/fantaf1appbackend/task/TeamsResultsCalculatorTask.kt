@@ -27,7 +27,8 @@ class TeamsResultsCalculatorTask(
     private val userNotificationChannel: Channel<ChannelConfiguration.Companion.UserNotificationChannelMessage>,
     private val teamRepository: TeamRepository,
     private val lineupRepository: LineupRepository,
-    private val firestore: Firestore
+    private val firestore: Firestore,
+    private val clock: Clock
 ) {
     @Scheduled(fixedRate = 1000)
     suspend fun runTask() {
@@ -81,7 +82,7 @@ class TeamsResultsCalculatorTask(
                 }
 
                 val score = calculatePointsPerLineup(raceWeekendResult, lineup)
-                val currentYear = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).year
+                val currentYear = clock.now().toLocalDateTime(TimeZone.currentSystemDefault()).year
                 val currentPoints = team.points
                 val teamPointsForYear = currentPoints.getOrDefault(currentYear, 0.0) + score
                 currentPoints[currentYear] = teamPointsForYear
@@ -100,7 +101,7 @@ class TeamsResultsCalculatorTask(
                             lineupRepository.updateLineupInTransaction(
                                 lineup.copy(
                                     score = score,
-                                    updatedAt = Clock.System.now(),
+                                    updatedAt = clock.now(),
                                     version = lineup.version + 1
                                 ),
                                 transaction
@@ -108,7 +109,7 @@ class TeamsResultsCalculatorTask(
                             teamRepository.updateTeamInTransaction(
                                 team.copy(
                                     points = currentPoints,
-                                    updatedAt = Clock.System.now(),
+                                    updatedAt = clock.now(),
                                 ),
                                 transaction
                             )
