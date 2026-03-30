@@ -28,7 +28,7 @@ class NotificationService(
         val notificationsSent = AtomicInt(0)
 
         do {
-            val lobbies = lobbyRepository.getLobbies(cursor).toList()
+            val lobbies = lobbyRepository.getLobbies(cursor, null).toList()
             LOGGER.info("Retrieved {} lobbies", lobbies.size)
             if (lobbies.isEmpty()) {
                 break
