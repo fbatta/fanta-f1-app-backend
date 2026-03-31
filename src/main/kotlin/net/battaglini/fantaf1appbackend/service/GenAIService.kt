@@ -32,7 +32,7 @@ class GenAIService(
             "You're writing a quick summary of a Formula 1 driver's $year season performance.",
             "Keep it brief and on point, maximum 40 words, excluding articles and conjunctions.",
             "Add a paragraph talking about how the formula 1 team for which they race is performing in the $year season.",
-            "Add a sentence mentioning that the driver's average score in the IDGAF-1 app is $averageScore."
+            "Add a sentence mentioning that the driver's average score in the IDGAF-1 app is ${"%.1f".format(averageScore)}."
         )
 
         return genAIClient.generateContentNoThinking(

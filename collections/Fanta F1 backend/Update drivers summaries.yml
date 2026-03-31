@@ -11,7 +11,28 @@ http:
     data: |-
       {
         "acronyms": [
-          "VER"
+          "VER",
+          "HAD",
+          "LEC",
+          "HAM",
+          "RUS",
+          "ANT",
+          "PIA",
+          "NOR",
+          "GAS",
+          "COL",
+          "HUL",
+          "BOR",
+          "PER",
+          "BOT",
+          "LIN",
+          "LAW",
+          "OCO",
+          "BEA",
+          "ALO",
+          "STR",
+          "SAI",
+          "ALB"
         ]
       }
   auth: inherit

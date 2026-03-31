@@ -98,6 +98,25 @@
         }
       ],
       "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "races",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "dateEnd",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "dateStart",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "ASCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
     }
   ],
   "fieldOverrides": []

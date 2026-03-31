@@ -38,7 +38,7 @@ class RaceRepository(
                 .whereGreaterThanOrEqualTo(RaceWeekend::dateStart.name, startOfYearTimestamp)
                 .whereLessThanOrEqualTo(RaceWeekend::dateEnd.name, endOfYearTimestamp)
                 .get().get()
-        }.map { objectMapper.convertValue(it, RaceWeekend::class.java) }.asFlow()
+        }.map { objectMapper.convertValue(it.data, RaceWeekend::class.java) }.asFlow()
     }
 
     companion object {
