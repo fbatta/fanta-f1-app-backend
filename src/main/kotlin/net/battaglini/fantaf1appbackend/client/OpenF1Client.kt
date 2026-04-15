@@ -157,7 +157,12 @@ class OpenF1Client(
 
                 uriBuilder.build()
             }
-            .exchangeToFlow { it.bodyToFlow() }
+            .exchangeToFlow {
+                if (it.statusCode() != HttpStatus.OK) {
+                    return@exchangeToFlow emptyFlow()
+                }
+                it.bodyToFlow()
+            }
     }
 
     fun getQualifyingResults(
@@ -176,7 +181,12 @@ class OpenF1Client(
 
                 uriBuilder.build()
             }
-            .exchangeToFlow { it.bodyToFlow() }
+            .exchangeToFlow {
+                if (it.statusCode() != HttpStatus.OK) {
+                    return@exchangeToFlow emptyFlow()
+                }
+                it.bodyToFlow()
+            }
     }
 
     /**

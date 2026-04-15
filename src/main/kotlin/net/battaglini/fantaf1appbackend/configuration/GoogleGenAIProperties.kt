@@ -7,6 +7,7 @@ data class GoogleGenAIProperties(
     val apiKey: String,
     val chatModel: String,
     val chatModelThinking: String?,
+    val defaultThinkingBudget: Int,
     val defaultOutputTokens: Int,
     val imageModel: String
 )

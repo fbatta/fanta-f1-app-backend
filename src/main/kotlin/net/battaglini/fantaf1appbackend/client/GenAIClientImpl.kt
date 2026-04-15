@@ -16,10 +16,34 @@ class GenAIClientImpl(
     private val client: Client
 ) : GenAIClient {
     override suspend fun generateContentNoThinking(prompt: String, instructions: List<String>): Flow<String> {
-        val systemInstruction = Content.fromParts(*instructions.map { Part.fromText(it) }.toTypedArray())
-
         val config = GenerateContentConfig.builder()
             .thinkingConfig(ThinkingConfig.builder().thinkingBudget(0))
+
+        return generateContent(prompt, instructions, config)
+    }
+
+    override suspend fun generateContentThinking(
+        prompt: String,
+        instructions: List<String>,
+        thinkingBudget: Int?
+    ): Flow<String> {
+        val config = GenerateContentConfig.builder()
+            .thinkingConfig(
+                ThinkingConfig
+                    .builder()
+                    .thinkingBudget(thinkingBudget ?: properties.defaultThinkingBudget)
+            )
+
+        return generateContent(prompt, instructions, config)
+    }
+
+    private suspend fun generateContent(
+        prompt: String,
+        instructions: List<String>,
+        configBuilder: GenerateContentConfig.Builder
+    ): Flow<String> {
+        val systemInstruction = Content.fromParts(*instructions.map { Part.fromText(it) }.toTypedArray())
+        val config = configBuilder
             .candidateCount(1)
             .maxOutputTokens(properties.defaultOutputTokens)
             .safetySettings(safetySetting)

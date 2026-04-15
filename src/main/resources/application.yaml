@@ -27,9 +27,11 @@ firebase:
 google:
   genai:
     chat-model: 'gemini-flash-latest'
-    default-output-tokens: 200
+    default-output-tokens: 1000
     image-model: 'imagen-3.0-generate-002'
     api-key: ${GOOGLE_GENAI_API_KEY}
+    chat-model-thinking: 'gemma-4-31b-it'
+    default-thinking-budget: 1000
 
 management:
   influx:
