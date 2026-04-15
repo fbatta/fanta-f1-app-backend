@@ -41,6 +41,7 @@ class PracticeResultsService(
             meetingKey = raceWeekend.openF1MeetingKey,
             sessionKeys = sessions.map { it.second.toString() }
         ).toList()
+
         return driverService.getDriversInSessions(sessions.map { it.second }).map { driver ->
             val fastestLap = results.filter { it.driverNumber == driver.driverNumber }.fold(999_999.9, { acc, result ->
                 if (result.duration != null && result.duration < acc) result.duration else acc

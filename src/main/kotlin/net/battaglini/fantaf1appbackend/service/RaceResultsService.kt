@@ -41,6 +41,11 @@ class RaceResultsService(
             val raceResults =
                 openF1Client.getResults(sessionKeys = listOf(sessionKey.toString()))
                     .toList()
+
+            if (raceResults.isEmpty()) {
+                return emptyFlow()
+            }
+
 //            val startingGrid = openF1Client.getStartingGrid(sessionKey = sessionKey.toString()).toList()
             val startingGrid = emptyList<OpenF1StartingGridResponse>()
             return driverService.getDriversInSessions(listOf(sessionKey))
@@ -77,7 +82,7 @@ class RaceResultsService(
                 if (lap.speedTrapSpeed != null && lap.speedTrapSpeed > speedAtTrap)
                     speedAtTrap = lap.speedTrapSpeed
             }
-        delay(2000)
+        delay(2000.toDuration(DurationUnit.MILLISECONDS))
         val startPosition = startingGrid.firstOrNull { it.driverNumber == driver.driverNumber }?.position
         val result = results.first { it.driverNumber == driver.driverNumber }
 

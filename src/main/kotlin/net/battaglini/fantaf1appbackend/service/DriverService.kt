@@ -75,7 +75,10 @@ class DriverService(
         driverCostRepository.createOrUpdateDriversCosts(driversCosts)
     }
 
-    suspend fun updateDriverSummary(driver: Driver) {
+    suspend fun updateDriverSummary(acronym: String): DriverSummary? {
+        val driver = driverRepository.findDriverByAcronym(acronym) ?: return null
+
+        LOGGER.debug("Updating F1 driver summary for driver={}", driver.name)
         val averageScore =
             calculateDriverAverageScore(
                 clock.now().toLocalDateTime(timeZone).year,
@@ -85,19 +88,14 @@ class DriverService(
 
         if (paragraphs.isEmpty()) {
             LOGGER.warn("Could not generate summary for driver={}", driver.name)
-            return
+            return null
         }
         val driverSummary =
             DriverSummary(driver.driverId, driver.name, driver.acronym, driver.driverNumber, paragraphs)
 
         driverSummaryRepository.createOrUpdateDriverSummary(driverSummary)
-    }
 
-    suspend fun updateDriverSummary(acronym: String) {
-        val driver = driverRepository.findDriverByAcronym(acronym)
-        if (driver != null) {
-            updateDriverSummary(driver)
-        }
+        return driverSummary
     }
 
     suspend fun updateAllDriversSummaries() {
