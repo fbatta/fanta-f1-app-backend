@@ -7,7 +7,7 @@ data class OpenF1DriverResponse(
     @JsonProperty("broadcast_name")
     val broadcastName: String,
     @JsonProperty("driver_number")
-    val driverNumber: Int,
+    val driverNumber: Int = 0,
     @JsonProperty("first_name")
     val firstName: String,
     @JsonProperty("full_name")
