@@ -2,7 +2,6 @@ package net.battaglini.fantaf1appbackend.controller
 
 import net.battaglini.fantaf1appbackend.exception.DriverNotFoundException
 import net.battaglini.fantaf1appbackend.exception.InvalidRequestException
-import net.battaglini.fantaf1appbackend.model.DriverSummary
 import net.battaglini.fantaf1appbackend.model.request.UpdateDriversCostsRequest
 import net.battaglini.fantaf1appbackend.model.request.UpdateDriversSummariesRequest
 import net.battaglini.fantaf1appbackend.model.response.DriverSummariesResponse
@@ -54,13 +53,7 @@ class AdminOperationsController(
 
     @PostMapping("/admin/drivers/summaries")
     suspend fun updateDriversSummaries(@RequestBody body: UpdateDriversSummariesRequest): DriverSummariesResponse {
-        val summaries = mutableListOf<DriverSummary>()
-        for (acronym in body.acronyms) {
-            val summary = driverService.updateDriverSummary(acronym)
-            if (summary != null) {
-                summaries.add(summary)
-            }
-        }
+        val summaries = driverService.updateDriverSummaries(body.acronyms)
         return DriverSummariesResponse(summaries)
     }
 }

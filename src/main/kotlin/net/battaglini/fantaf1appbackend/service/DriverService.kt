@@ -1,5 +1,8 @@
 package net.battaglini.fantaf1appbackend.service
 
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
@@ -20,6 +23,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.boot.context.event.ApplicationStartedEvent
 import org.springframework.context.event.EventListener
 import org.springframework.stereotype.Service
+import kotlin.collections.map
 import kotlin.time.Clock
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -75,9 +79,7 @@ class DriverService(
         driverCostRepository.createOrUpdateDriversCosts(driversCosts)
     }
 
-    suspend fun updateDriverSummary(acronym: String): DriverSummary? {
-        val driver = driverRepository.findDriverByAcronym(acronym) ?: return null
-
+    suspend fun updateDriverSummary(driver: Driver): DriverSummary? {
         LOGGER.debug("Updating F1 driver summary for driver={}", driver.name)
         val averageScore =
             calculateDriverAverageScore(
@@ -98,10 +100,25 @@ class DriverService(
         return driverSummary
     }
 
-    suspend fun updateAllDriversSummaries() {
+    suspend fun updateDriverSummary(acronym: String): DriverSummary? {
+        val driver = driverRepository.findDriverByAcronym(acronym) ?: return null
+        return updateDriverSummary(driver)
+    }
+
+    suspend fun updateDriverSummaries(acronyms: List<String>): List<DriverSummary> {
+        return coroutineScope {
+            acronyms.map { acronym ->
+                async { updateDriverSummary(acronym) }
+            }.awaitAll()
+        }.filterNotNull()
+    }
+
+    suspend fun updateAllDriversSummaries(): List<DriverSummary> {
         val drivers = driverRepository.getDrivers().toList()
-        drivers.forEach { driver ->
-            updateDriverSummary(driver)
+        return coroutineScope {
+            drivers.map { driver ->
+                async { updateDriverSummary(driver) }
+            }.awaitAll().filterNotNull()
         }
     }
 

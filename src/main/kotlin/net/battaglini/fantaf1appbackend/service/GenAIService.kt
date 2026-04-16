@@ -33,7 +33,11 @@ class GenAIService(
             "Use the google search tool to find the latest information of the driver, as well as the last 2 results.",
             "Keep it brief and on point, maximum 40 words, excluding articles and conjunctions.",
             "Add a paragraph talking about how the formula 1 team for which they race is performing in the $year season.",
-            "Add a sentence mentioning that the driver's average score in the IDGAF-1 app is ${"%.1f".format(averageScore)}."
+            "Add a sentence mentioning that the driver's average score in the IDGAF-1 app is ${
+                "%.1f".format(
+                    averageScore
+                )
+            }.",
             "Use markdown formatting."
         )
 
