@@ -32,10 +32,13 @@ class NotificationsTask(
                     driverService.updateAllDriversSummaries()
                 } catch (e: Exception) {
                     LOGGER.error("Error updating driver summaries", e)
-                } finally {
+                }
+                try {
                     notificationService.processRaceWeekendCalculationCompletedNotification(
                         notification.data as RaceWeekendResult
                     )
+                } catch (e: Exception) {
+                    LOGGER.error("Error sending notifications", e)
                 }
             }
 

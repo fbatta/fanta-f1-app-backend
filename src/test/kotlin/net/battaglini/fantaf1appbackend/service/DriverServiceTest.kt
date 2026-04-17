@@ -61,7 +61,7 @@ class DriverServiceTest {
     val timeZone = TimeZone.UTC
 
     @InjectMockKs
-    lateinit var driverService: DriverService
+    lateinit var driverService: DriverServiceImpl
 
     @BeforeEach
     fun setUp() {

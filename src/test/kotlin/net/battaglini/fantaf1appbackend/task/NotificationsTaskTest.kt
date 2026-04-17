@@ -61,7 +61,7 @@ class NotificationsTaskTest {
             data = raceWeekendResult
         )
 
-        coEvery { driverService.updateAllDriversSummaries() } returns Unit
+        coEvery { driverService.updateAllDriversSummaries() } returns emptyList()
         coEvery { notificationService.processRaceWeekendCalculationCompletedNotification(any()) } returns 1
 
         every { userNotificationChannel.tryReceive() } coAnswers { ChannelResult.success(notification) }
@@ -132,7 +132,7 @@ class NotificationsTaskTest {
 
         every { userNotificationChannel.tryReceive() } coAnswers { ChannelResult.success(notification) }
 
-        coEvery { driverService.updateAllDriversSummaries() } returns Unit
+        coEvery { driverService.updateAllDriversSummaries() } returns emptyList()
         coEvery {
             notificationService.processRaceWeekendCalculationCompletedNotification(any())
         } throws RuntimeException("Test exception")
@@ -157,6 +157,7 @@ class NotificationsTaskTest {
 
         coEvery { driverService.updateAllDriversSummaries() } coAnswers {
             executionOrder.add("driverService")
+            emptyList()
         }
 
         val originalProcessNotification =

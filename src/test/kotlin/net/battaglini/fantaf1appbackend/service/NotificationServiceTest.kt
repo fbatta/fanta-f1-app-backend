@@ -35,7 +35,7 @@ class NotificationServiceTest {
     lateinit var userService: UserService
 
     @InjectMockKs
-    lateinit var notificationService: NotificationService
+    lateinit var notificationService: NotificationServiceImpl
 
     @BeforeEach
     fun setUp() {
