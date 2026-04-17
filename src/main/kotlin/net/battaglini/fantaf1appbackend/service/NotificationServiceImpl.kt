@@ -5,7 +5,9 @@ import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.Message
 import com.google.firebase.messaging.Notification
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import net.battaglini.fantaf1appbackend.enums.UserNotificationType
 import net.battaglini.fantaf1appbackend.model.RaceWeekendResult
@@ -35,46 +37,13 @@ class NotificationServiceImpl(
             }
             cursor = lobbies.last().first
 
-            for (lobby in lobbies.map { it.second }) {
-                val users = userService.getUsersByLobbyId(lobby.lobbyId)
-
-                users.collect { user ->
-                    if (user.deviceRegistrationTokens.isEmpty()) {
-                        LOGGER.warn(
-                            "User {} not found, or no device registration token found. Cannot send notification={}",
-                            user.userId,
-                            UserNotificationType.RACE_WEEKEND_RESULTS_AVAILABLE
-                        )
-                        return@collect
-                    }
-                    for (token in user.deviceRegistrationTokens) {
-                        val message = Message.builder()
-                            .setToken(token.key)
-                            .setNotification(
-                                Notification.builder().setTitle("${raceWeekendResult.raceName} results available")
-                                    .setBody("Results for ${raceWeekendResult.raceName} are now available, click here to check them out!")
-                                    .build()
-                            )
-                            .putData("type", UserNotificationType.RACE_WEEKEND_RESULTS_AVAILABLE.value)
-                            .putData("raceId", raceWeekendResult.raceId)
-                            .build()
-                        try {
-                            withContext(Dispatchers.IO) {
-                                firebaseMessaging.sendAsync(message).get()
+            coroutineScope {
+                for (lobby in lobbies.map { it.second }) {
+                    launch {
+                        userService.getUsersByLobbyId(lobby.lobbyId).collect { user ->
+                            launch {
+                                sendNotificationsToUser(user, raceWeekendResult, notificationsSent)
                             }
-                            notificationsSent.incrementAndFetch()
-                            LOGGER.info(
-                                "Sent notification={} to userId={}",
-                                UserNotificationType.RACE_WEEKEND_RESULTS_AVAILABLE,
-                                user.userId
-                            )
-                        } catch (e: Exception) {
-                            LOGGER.error(
-                                "Error sending notification={} to userId={}",
-                                UserNotificationType.RACE_WEEKEND_RESULTS_AVAILABLE,
-                                user.userId,
-                                e
-                            )
                         }
                     }
                 }
@@ -82,6 +51,57 @@ class NotificationServiceImpl(
         } while (lobbies.isNotEmpty())
 
         return notificationsSent.load()
+    }
+
+    @OptIn(ExperimentalAtomicApi::class)
+    private suspend fun sendNotificationsToUser(
+        user: net.battaglini.fantaf1appbackend.model.User,
+        raceWeekendResult: RaceWeekendResult,
+        notificationsSent: AtomicInt
+    ) {
+        if (user.deviceRegistrationTokens.isEmpty()) {
+            LOGGER.warn(
+                "User {} not found, or no device registration token found. Cannot send notification={}",
+                user.userId,
+                UserNotificationType.RACE_WEEKEND_RESULTS_AVAILABLE
+            )
+            return
+        }
+
+        coroutineScope {
+            for (token in user.deviceRegistrationTokens) {
+                launch {
+                    val message = Message.builder()
+                        .setToken(token.key)
+                        .setNotification(
+                            Notification.builder().setTitle("${raceWeekendResult.raceName} results available")
+                                .setBody("Results for ${raceWeekendResult.raceName} are now available, click here to check them out!")
+                                .build()
+                        )
+                        .putData("type", UserNotificationType.RACE_WEEKEND_RESULTS_AVAILABLE.value)
+                        .putData("raceId", raceWeekendResult.raceId)
+                        .build()
+                    try {
+                        withContext(Dispatchers.IO) {
+                            firebaseMessaging.sendAsync(message).get()
+                        }
+                        notificationsSent.incrementAndFetch()
+                        LOGGER.info(
+                            "Sent notification={} to userId={}",
+                            UserNotificationType.RACE_WEEKEND_RESULTS_AVAILABLE,
+                            user.userId
+                        )
+                    } catch (e: Exception) {
+                        LOGGER.error(
+                            "Error sending notification={} to userId={}",
+                            UserNotificationType.RACE_WEEKEND_RESULTS_AVAILABLE,
+                            user.userId,
+                            e
+                        )
+                    }
+                }
+            }
+        }
     }
 
     companion object {
