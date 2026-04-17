@@ -1,5 +1,6 @@
 package net.battaglini.fantaf1appbackend.service
 
+import net.battaglini.fantaf1appbackend.model.RaceWeekend
 import net.battaglini.fantaf1appbackend.model.RaceWeekendResult
 
 /**
@@ -14,4 +15,12 @@ interface NotificationService {
      * @return The number of notifications successfully sent.
      */
     suspend fun processRaceWeekendCalculationCompletedNotification(raceWeekendResult: RaceWeekendResult): Int
+
+    /**
+     * Sends a notification to all users when a race weekend's lineup is open.
+     *
+     * @param raceWeekend The race weekend for which the lineup is open.
+     * @return The number of notifications successfully sent.
+     */
+    suspend fun sendLineupOpenNotification(raceWeekend: RaceWeekend): Int
 }

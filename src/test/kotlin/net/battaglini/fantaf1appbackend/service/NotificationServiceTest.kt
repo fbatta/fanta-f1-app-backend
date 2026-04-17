@@ -67,6 +67,44 @@ class NotificationServiceTest {
         summaryParagraphs = null
     )
 
+    private fun createRaceWeekend() = net.battaglini.fantaf1appbackend.model.RaceWeekend(
+        raceId = "race1",
+        raceName = "Test Race",
+        openF1MeetingKey = 1,
+        dateStart = Clock.System.now(),
+        dateEnd = Clock.System.now(),
+        sessions = emptyList(),
+        circuitImage = "image",
+        countryName = "Italy",
+        countryFlag = "flag",
+        circuitType = "street",
+        dateLineupOpen = Clock.System.now(),
+        dateLineupClose = Clock.System.now()
+    )
+
+    @Test
+    fun `sendLineupOpenNotification should send notifications to all users in lobbies`() =
+        runTest {
+            val raceWeekend = createRaceWeekend()
+            val lobby1 = createLobby("lobby1")
+            val mockSnapshot1 = mockk<DocumentSnapshot>()
+
+            coEvery { lobbyRepository.getLobbies(null, any()) } returns flowOf(Pair(mockSnapshot1, lobby1))
+            coEvery { lobbyRepository.getLobbies(mockSnapshot1, any()) } returns emptyFlow()
+
+            val user1 = createUser("user1", mapOf("token1" to "token1_val"))
+            coEvery { userService.getUsersByLobbyId("lobby1") } returns flowOf(user1)
+
+            val mockFuture = mockk<ApiFuture<String>>()
+            every { mockFuture.get() } returns "message_id"
+            every { firebaseMessaging.sendAsync(any<Message>()) } returns mockFuture
+
+            val sentCount = notificationService.sendLineupOpenNotification(raceWeekend)
+
+            assertEquals(1, sentCount)
+            verify(exactly = 1) { firebaseMessaging.sendAsync(any<Message>()) }
+        }
+
     @Test
     fun `processRaceWeekendCalculationCompletedNotification should send notifications to all users in lobbies`() =
         runTest {
