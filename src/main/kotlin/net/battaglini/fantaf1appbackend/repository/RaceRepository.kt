@@ -5,6 +5,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.withContext
+import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
@@ -25,6 +26,23 @@ class RaceRepository(
                     transaction.set(reference, objectMapper.convertValue(race, Map::class.java))
                 }
             }.get()
+        }
+    }
+
+    suspend fun findNextRace(now: Instant): RaceWeekend? {
+        return withContext(Dispatchers.IO) {
+            val querySnapshot = firestore.collection(COLLECTION_PATH)
+                .whereGreaterThan(RaceWeekend::dateEnd.name, now.toEpochMilliseconds())
+                .orderBy(RaceWeekend::dateEnd.name)
+                .limit(1)
+                .get()
+                .get()
+
+            if (querySnapshot.isEmpty) {
+                null
+            } else {
+                objectMapper.convertValue(querySnapshot.documents[0].data, RaceWeekend::class.java)
+            }
         }
     }
 
