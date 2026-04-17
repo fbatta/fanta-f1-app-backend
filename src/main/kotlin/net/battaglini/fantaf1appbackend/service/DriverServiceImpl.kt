@@ -43,7 +43,7 @@ class DriverServiceImpl(
 ) : DriverService {
 
     @EventListener(ApplicationStartedEvent::class)
-    private suspend fun onStart() {
+    internal suspend fun onStart() {
         if (!seedingProperties.drivers) {
             LOGGER.info("Skipping F1 drivers' seeding because it is disabled in app config")
         } else {
