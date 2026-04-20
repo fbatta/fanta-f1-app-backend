@@ -13,11 +13,13 @@ import net.battaglini.fantaf1appbackend.configuration.ResultsCalculatorPropertie
 import net.battaglini.fantaf1appbackend.enums.UserNotificationType
 import net.battaglini.fantaf1appbackend.model.Lineup
 import net.battaglini.fantaf1appbackend.model.RaceWeekendResult
+import net.battaglini.fantaf1appbackend.model.Team
 import net.battaglini.fantaf1appbackend.repository.LineupRepository
 import net.battaglini.fantaf1appbackend.repository.TeamRepository
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
+import java.util.Locale
 import kotlin.time.Clock
 
 @Component
@@ -31,7 +33,7 @@ class TeamsResultsCalculatorTask(
     private val clock: Clock
 ) {
     @Scheduled(fixedRate = 1000)
-    suspend fun runTask() {
+    internal suspend fun runTask() {
         if (!resultsCalculatorProperties.enable) {
             LOGGER.debug("Skipping checking raceWeekend results availability because it is disabled in app config")
             return
@@ -58,84 +60,90 @@ class TeamsResultsCalculatorTask(
     }
 
     private suspend fun calculateTeamsResults(raceWeekendResult: RaceWeekendResult) {
-        var cursor: DocumentSnapshot? = null
+        val driverPoints = raceWeekendResult.results.associate { it.driverAcronym to it.points }
+        val currentYear = clock.now().toLocalDateTime(TimeZone.currentSystemDefault()).year
 
+        var cursor: DocumentSnapshot? = null
         do {
             val teamsPair = teamRepository.getAllTeams(cursor).toList()
             LOGGER.info("Retrieved {} teams", teamsPair.size)
-            if (teamsPair.isEmpty()) {
-                break
-            }
+            if (teamsPair.isEmpty()) break
             cursor = teamsPair.last().first
 
-            for (team in teamsPair.map { it.second }) {
-                val lineup = lineupRepository.getLineup(team.teamId, raceWeekendResult.raceId)
-
-                if (lineup == null) {
-                    LOGGER.warn(
-                        "Could not find a lineup for teamId={}, teamName={}, raceId={}",
-                        team.teamId,
-                        team.teamName,
-                        raceWeekendResult.raceId
-                    )
-                    continue
-                }
-
-                val score = calculatePointsPerLineup(raceWeekendResult, lineup)
-                val currentYear = clock.now().toLocalDateTime(TimeZone.currentSystemDefault()).year
-                val currentPoints = team.points
-                val teamPointsForYear = currentPoints.getOrDefault(currentYear, 0.0) + score
-                currentPoints[currentYear] = teamPointsForYear
-
-                if (resultsCalculatorProperties.dryRun) {
-                    LOGGER.info(
-                        """
-                        Dry-running team results for ${team.teamName}. Score: $score
-                        """.trimIndent()
-                    )
-                    continue
-                }
-                try {
-                    withContext(Dispatchers.IO) {
-                        firestore.runTransaction { transaction ->
-                            lineupRepository.updateLineupInTransaction(
-                                lineup.copy(
-                                    score = score,
-                                    updatedAt = clock.now(),
-                                    version = lineup.version + 1
-                                ),
-                                transaction
-                            )
-                            teamRepository.updateTeamInTransaction(
-                                team.copy(
-                                    points = currentPoints,
-                                    updatedAt = clock.now(),
-                                ),
-                                transaction
-                            )
-                        }.get()
-                    }
-                } catch (e: Exception) {
-                    LOGGER.error(
-                        "Could not save score for teamId={}, teamName={}. Admin will have to enter score manually",
-                        team.teamId,
-                        team.teamName,
-                        e
-                    )
-                }
+            for ((_, team) in teamsPair) {
+                processTeam(team, raceWeekendResult.raceId, driverPoints, currentYear)
             }
         } while (teamsPair.isNotEmpty())
     }
 
-    suspend fun calculatePointsPerLineup(raceWeekendResult: RaceWeekendResult, lineup: Lineup): Double {
-        var points = 0.0
-        for (driver in lineup.drivers) {
-            val result = raceWeekendResult.results.firstOrNull { it.driverAcronym == driver.driverAcronym }
-            if (result != null) {
-                points += result.points
-            }
+    private suspend fun processTeam(
+        team: Team,
+        raceId: String,
+        driverPoints: Map<String, Double>,
+        currentYear: Int
+    ) {
+        val lineup = lineupRepository.getLineup(team.teamId, raceId)
+        if (lineup == null) {
+            LOGGER.warn(
+                "Could not find a lineup for teamId={}, teamName={}, raceId={}",
+                team.teamId,
+                team.teamName,
+                raceId
+            )
+            return
         }
-        return String.format("%.1f", points).toDouble()
+
+        val score = calculatePointsPerLineup(lineup, driverPoints)
+        val teamPoints = team.points.toMutableMap()
+        teamPoints[currentYear] = teamPoints.getOrDefault(currentYear, 0.0) + score
+
+        if (resultsCalculatorProperties.dryRun) {
+            LOGGER.info("Dry-running team results for ${team.teamName}. Score: $score")
+            return
+        }
+
+        saveTeamAndLineup(team, teamPoints, lineup, score)
+    }
+
+    private suspend fun saveTeamAndLineup(
+        team: Team,
+        updatedPoints: Map<Int, Double>,
+        lineup: Lineup,
+        score: Double
+    ) {
+        try {
+            withContext(Dispatchers.IO) {
+                firestore.runTransaction { transaction ->
+                    lineupRepository.updateLineupInTransaction(
+                        lineup.copy(
+                            score = score,
+                            updatedAt = clock.now(),
+                            version = lineup.version + 1
+                        ),
+                        transaction
+                    )
+                    teamRepository.updateTeamInTransaction(
+                        team.copy(
+                            points = updatedPoints.toMutableMap(),
+                            updatedAt = clock.now(),
+                        ),
+                        transaction
+                    )
+                }.get()
+            }
+        } catch (e: Exception) {
+            LOGGER.error(
+                "Could not save score for teamId={}, teamName={}. Admin will have to enter score manually",
+                team.teamId,
+                team.teamName,
+                e
+            )
+        }
+    }
+
+    fun calculatePointsPerLineup(lineup: Lineup, driverPoints: Map<String, Double>): Double {
+        val points = lineup.drivers.sumOf { driver -> driverPoints[driver.driverAcronym] ?: 0.0 }
+        return String.format(Locale.US, "%.1f", points).toDouble()
     }
 
     companion object {

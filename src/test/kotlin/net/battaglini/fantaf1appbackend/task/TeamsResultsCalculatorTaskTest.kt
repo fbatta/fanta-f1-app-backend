@@ -102,9 +102,10 @@ class TeamsResultsCalculatorTaskTest {
     @Test
     fun `calculatePointsPerLineup should sum driver points correctly`() = runTest {
         val raceResult = createRaceWeekendResult()
+        val driverPoints = raceResult.results.associate { it.driverAcronym to it.points }
         val lineup = createLineup("team1", "race1")
 
-        val points = task.calculatePointsPerLineup(raceResult, lineup)
+        val points = task.calculatePointsPerLineup(lineup, driverPoints)
 
         // VER (20.0) + HAM (15.0) = 35.0
         assertEquals(35.0, points)
