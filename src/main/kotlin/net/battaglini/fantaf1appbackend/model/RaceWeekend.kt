@@ -5,7 +5,7 @@ import net.battaglini.fantaf1appbackend.enums.RaceWeekendSessionType
 import net.battaglini.fantaf1appbackend.serializer.KotlinInstantSerializer
 import tools.jackson.databind.annotation.JsonDeserialize
 import tools.jackson.databind.annotation.JsonSerialize
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 
 data class RaceWeekend(
     val raceId: String,

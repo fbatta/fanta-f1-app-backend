@@ -23,4 +23,21 @@ interface NotificationService {
      * @return The number of notifications successfully sent.
      */
     suspend fun sendLineupOpenNotification(raceWeekend: RaceWeekend): Int
+
+    /**
+     * Sends a notification to all users when a race weekend's lineup is about to close.
+     *
+     * @param raceWeekend The race weekend for which the lineup is about to close.
+     * @param hoursBefore The number of hours before closing for the reminder.
+     * @return The number of notifications successfully sent.
+     */
+    suspend fun sendLineupCloseReminderNotification(raceWeekend: RaceWeekend, hoursBefore: Long): Int
+
+    /**
+     * Sends a notification to all users when a race weekend's lineup has closed.
+     *
+     * @param raceWeekend The race weekend for which the lineup has closed.
+     * @return The number of notifications successfully sent.
+     */
+    suspend fun sendLineupClosedNotification(raceWeekend: RaceWeekend): Int
 }

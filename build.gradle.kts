@@ -1,7 +1,7 @@
 val firebaseAdminVersion = "9.8.0"
 val kotlinxDateTimeVersion = "0.7.1"
 val caffeineVersion = "3.2.3"
-val googleGenAIVersion = "1.45.0"
+val googleGenAIVersion = "1.51.0"
 val okhttp3Version = "5.3.2"
 val mockkVersion = "1.14.9"
 val springMockkVersion = "4.0.2"
@@ -11,7 +11,7 @@ plugins {
     kotlin("plugin.spring") version "2.3.20"
     id("org.springframework.boot") version "4.0.3"
     id("io.spring.dependency-management") version "1.1.7"
-    id("com.github.ben-manes.versions") version "0.53.0"
+    id("com.github.ben-manes.versions") version "0.54.0"
 }
 
 group = "net.battaglini"

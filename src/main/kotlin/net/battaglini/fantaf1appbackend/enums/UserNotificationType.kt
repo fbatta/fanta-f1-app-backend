@@ -10,6 +10,8 @@ import tools.jackson.databind.ser.std.StdSerializer
 enum class UserNotificationType(val value: String) {
     RACE_WEEKEND_RESULTS_AVAILABLE("raceWeekendResultsAvailable"),
     LINEUP_OPEN("lineupOpen"),
+    LINEUP_CLOSE_REMINDER("lineupCloseReminder"),
+    LINEUP_CLOSED("lineupClosed"),
     UNKNOWN("unknown");
 
     companion object {

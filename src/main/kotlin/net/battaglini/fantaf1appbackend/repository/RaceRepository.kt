@@ -5,13 +5,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.withContext
-import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
 import net.battaglini.fantaf1appbackend.model.RaceWeekend
 import org.springframework.stereotype.Repository
 import tools.jackson.databind.ObjectMapper
+import kotlin.time.Instant
 
 @Repository
 class RaceRepository(
