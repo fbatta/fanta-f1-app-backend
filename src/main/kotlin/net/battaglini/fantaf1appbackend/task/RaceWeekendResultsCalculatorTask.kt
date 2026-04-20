@@ -2,6 +2,7 @@ package net.battaglini.fantaf1appbackend.task
 
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
@@ -13,6 +14,7 @@ import net.battaglini.fantaf1appbackend.configuration.ChannelConfiguration
 import net.battaglini.fantaf1appbackend.configuration.ResultsCalculatorProperties
 import net.battaglini.fantaf1appbackend.enums.TaskType
 import net.battaglini.fantaf1appbackend.model.*
+import net.battaglini.fantaf1appbackend.model.openf1.OpenF1MeetingResponse
 import net.battaglini.fantaf1appbackend.model.openf1.OpenF1MeetingResponse.Companion.toRace
 import net.battaglini.fantaf1appbackend.model.openf1.OpenF1SessionResponse.Companion.toRaceWeekendSession
 import net.battaglini.fantaf1appbackend.repository.DriverRepository
@@ -23,9 +25,11 @@ import net.battaglini.fantaf1appbackend.service.RaceResultsService
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
+import java.util.Locale
 import kotlin.time.Clock
-import kotlin.time.DurationUnit
-import kotlin.time.toDuration
+import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -48,59 +52,32 @@ class RaceWeekendResultsCalculatorTask(
             LOGGER.info("Skipping race weekend results calculation because it is disabled in app config")
             return
         }
-        LOGGER.info("Calculating race weekend results")
 
-        val now = clock.now()
-        val nowLocal = now.toLocalDateTime(TimeZone.currentSystemDefault())
         try {
-            val meeting = openF1Client.getRaces(year = nowLocal.year).firstOrNull { meeting ->
-                val endInstant = meeting.dateEnd.toInstant(meeting.gmtOffset)
-                val difference = now - endInstant
-                difference >= 0.toDuration(DurationUnit.MINUTES) && difference < 6.toDuration(DurationUnit.DAYS)
-            }
-            if (meeting == null) {
-                LOGGER.info("No race weekends found within 0 and 6 days before today")
-                return
-            }
-            val existingResults =
-                raceWeekendResultRepository.findRaceWeekendResult(openF1MeetingKey = meeting.meetingKey)
+            val meeting = findCurrentMeeting() ?: return
 
-            if (existingResults != null) {
+            if (raceWeekendResultRepository.findRaceWeekendResult(openF1MeetingKey = meeting.meetingKey) != null) {
                 LOGGER.info(
                     "Found raceWeekend result for raceId={} raceName={}. Exiting...",
-                    existingResults.raceId,
+                    meeting.meetingKey,
                     meeting.meetingName
                 )
                 return
             }
+
             LOGGER.info("No results found for raceName={}. Starting calculation...", meeting.meetingName)
 
-            val sessions = openF1Client.getSessions(meetingKey = meeting.meetingKey).map {
-                it.toRaceWeekendSession(
-                    sessionId = generateSessionId(meeting.meetingKey, it.sessionKey)
-                )
-            }.toList()
-            val raceWeekend = meeting.toRace(
-                raceId = generateRaceId(meeting.meetingKey, meeting.year), sessions = sessions
-            )
-            val combinedPracticeResults =
-                practiceResultsService.getDriversResultsForCombinedPractice(raceWeekend).toList()
-            delay(2000.toDuration(DurationUnit.MILLISECONDS))
-            val qualifyingResults = qualifyingResultsService
-                .getDriversResultsForQualifying(raceWeekend, false)
-                .toList()
-            delay(2000.toDuration(DurationUnit.MILLISECONDS))
-            val sprintQualifyingResults = qualifyingResultsService
-                .getDriversResultsForQualifying(raceWeekend, true)
-                .toList()
-            delay(2000.toDuration(DurationUnit.MILLISECONDS))
-            val raceResults = raceResultsService.getResultsForRace(raceWeekend, false).toList()
-            delay(2000.toDuration(DurationUnit.MILLISECONDS))
-            val sprintRaceResults = raceResultsService.getResultsForRace(raceWeekend, true).toList()
+            val raceWeekend = createRaceWeekend(meeting)
+
+            val combinedPracticeResults = fetchResults { practiceResultsService.getDriversResultsForCombinedPractice(raceWeekend) }
+            val qualifyingResults = fetchResults { qualifyingResultsService.getDriversResultsForQualifying(raceWeekend, false) }
+            val sprintQualifyingResults = fetchResults { qualifyingResultsService.getDriversResultsForQualifying(raceWeekend, true) }
+            val raceResults = fetchResults { raceResultsService.getResultsForRace(raceWeekend, false) }
+            val sprintRaceResults = fetchResults { raceResultsService.getResultsForRace(raceWeekend, true) }
 
             if (combinedPracticeResults.isEmpty() || qualifyingResults.isEmpty() || raceResults.isEmpty()) {
                 LOGGER.warn(
-                    "Could not calculate minimum set of results for raceId={}, raceName={}. This could be due to not all results being available yet",
+                    "Could not calculate minimum set of results for raceId={}, raceName={}. Results might not be available yet",
                     raceWeekend.raceId,
                     raceWeekend.raceName
                 )
@@ -116,27 +93,51 @@ class RaceWeekendResultsCalculatorTask(
                 raceWeekend
             )
 
-            if (resultsCalculatorProperties.dryRun) {
-                LOGGER.info(
-                    """
-                    DRY RUN: race weekend results for ${raceWeekend.raceName}
-                    $raceWeekendResult
-                """.trimIndent()
-                )
-            } else {
-                raceWeekendResultRepository.saveRaceWeekendResult(raceWeekendResult)
-
-                taskChannel.send(
-                    ChannelConfiguration.Companion.TaskChannelMessage(
-                        TaskType.RACE_WEEKEND_RESULTS_CALCULATION_COMPLETED,
-                        raceWeekendResult
-                    )
-                )
-            }
-
-            LOGGER.info("Finished calculating race weekend results")
+            saveAndNotify(raceWeekendResult)
+            LOGGER.info("Finished calculating race weekend results for {}", raceWeekend.raceName)
         } catch (e: Exception) {
             LOGGER.error("Error calculating race weekend results", e)
+        }
+    }
+
+    private suspend fun findCurrentMeeting(): OpenF1MeetingResponse? {
+        val now = clock.now()
+        val nowLocal = now.toLocalDateTime(TimeZone.currentSystemDefault())
+        val meeting = openF1Client.getRaces(year = nowLocal.year).firstOrNull { meeting ->
+            val endInstant = meeting.dateEnd.toInstant(meeting.gmtOffset)
+            val difference = now - endInstant
+            difference >= 0.minutes && difference < 6.days
+        }
+        if (meeting == null) {
+            LOGGER.info("No race weekends found within 0 and 6 days before today")
+        }
+        return meeting
+    }
+
+    private suspend fun createRaceWeekend(meeting: OpenF1MeetingResponse): RaceWeekend {
+        val sessions = openF1Client.getSessions(meetingKey = meeting.meetingKey).map {
+            it.toRaceWeekendSession(sessionId = generateSessionId(meeting.meetingKey, it.sessionKey))
+        }.toList()
+        return meeting.toRace(raceId = generateRaceId(meeting.meetingKey, meeting.year), sessions = sessions)
+    }
+
+    private suspend fun <T> fetchResults(fetcher: suspend () -> Flow<T>): List<T> {
+        val results = fetcher().toList()
+        delay(2.seconds)
+        return results
+    }
+
+    private suspend fun saveAndNotify(raceWeekendResult: RaceWeekendResult) {
+        if (resultsCalculatorProperties.dryRun) {
+            LOGGER.info("DRY RUN: race weekend results for ${raceWeekendResult.raceName}\n$raceWeekendResult")
+        } else {
+            raceWeekendResultRepository.saveRaceWeekendResult(raceWeekendResult)
+            taskChannel.send(
+                ChannelConfiguration.Companion.TaskChannelMessage(
+                    TaskType.RACE_WEEKEND_RESULTS_CALCULATION_COMPLETED,
+                    raceWeekendResult
+                )
+            )
         }
     }
 
@@ -150,42 +151,29 @@ class RaceWeekendResultsCalculatorTask(
     ): RaceWeekendResult {
         val drivers = driverRepository.getDrivers().toList()
 
-        val practiceResults = driverPracticeResults.sortedBy { it.fastestLap }.mapIndexed { index, result ->
-            Pair(result.driverAcronym, mapIndexToPoints(index))
-        }
-        val qualifyingResults =
-            driverQualifyingResults.sortedBy { it.finalPosition }.mapIndexed { index, result ->
-                Pair(result.driverAcronym, mapIndexToPoints(index))
-            }
-        val sprintQualifyingResults =
-            driverSprintQualifyingResults.sortedBy { it.finalPosition }.mapIndexed { index, result ->
-                Pair(result.driverAcronym, mapIndexToPoints(index))
-            }
-        val raceResults = driverRaceResults.sortedBy { it.finalPosition }.mapIndexed { index, result ->
-            Pair(result.driverAcronym, mapIndexToPoints(index))
-        }
-        val sprintRaceResults = driverSprintRaceResults.sortedBy { it.finalPosition }.mapIndexed { index, result ->
-            Pair(result.driverAcronym, mapIndexToPoints(index))
-        }
+        val practicePoints = driverPracticeResults.sortedBy { it.fastestLap }.mapToPoints()
+        val qualifyingPoints =
+            driverQualifyingResults.sortedWith(compareBy(nullsLast()) { it.finalPosition }).mapToPoints()
+        val sprintQualifyingPoints =
+            driverSprintQualifyingResults.sortedWith(compareBy(nullsLast()) { it.finalPosition }).mapToPoints()
+        val racePoints =
+            driverRaceResults.sortedWith(compareBy(nullsLast()) { it.finalPosition }).mapToPoints()
+        val sprintRacePoints =
+            driverSprintRaceResults.sortedWith(compareBy(nullsLast()) { it.finalPosition }).mapToPoints()
 
         val results = drivers.map { driver ->
-            val practiceResult = practiceResults.firstOrNull { it.first == driver.acronym }
-            val qualifyingResult = qualifyingResults.firstOrNull { it.first == driver.acronym }
-            val sprintQualifyingResult =
-                sprintQualifyingResults.firstOrNull { it.first == driver.acronym }
-            val raceResult = raceResults.firstOrNull { it.first == driver.acronym }
-            val sprintRaceResult = sprintRaceResults.firstOrNull { it.first == driver.acronym }
+            val points = calculateMean(
+                practicePoints[driver.acronym],
+                qualifyingPoints[driver.acronym],
+                sprintQualifyingPoints[driver.acronym],
+                racePoints[driver.acronym],
+                sprintRacePoints[driver.acronym]
+            )
             RaceWeekendResult.Companion.Result(
                 driverId = driver.driverId,
                 driverNumber = driver.driverNumber,
                 driverAcronym = driver.acronym,
-                points = calculateMean(
-                    practiceResult,
-                    qualifyingResult,
-                    sprintQualifyingResult,
-                    raceResult,
-                    sprintRaceResult
-                ),
+                points = points,
             )
         }
 
@@ -197,62 +185,25 @@ class RaceWeekendResultsCalculatorTask(
             updatedAt = clock.now(),
             version = 1,
             results = results,
-            // TODO: change this, passing actual race summary paragraphs
             summaryParagraphs = null
         )
     }
 
-    private fun mapIndexToPoints(index: Int): Double {
-        return when (index) {
-            0 -> 20.0
-            1 -> 17.0
-            2 -> 15.0
-            3 -> 13.0
-            4 -> 11.0
-            5 -> 10.0
-            6 -> 9.0
-            7 -> 8.0
-            8 -> 7.0
-            9 -> 6.0
-            10 -> 5.0
-            11 -> 4.0
-            12 -> 3.0
-            13 -> 2.0
-            14 -> 1.0
-            else -> 0.0
-        }
+    private fun <T : DriverResult> List<T>.mapToPoints(): Map<String, Double> {
+        return this.mapIndexed { index, result -> result.driverAcronym to mapIndexToPoints(index) }.toMap()
     }
 
-    private fun calculateMean(
-        practiceResult: Pair<String, Double>?,
-        qualifyingResult: Pair<String, Double>?,
-        sprintQualifyingResult: Pair<String, Double>?,
-        raceResult: Pair<String, Double>?,
-        sprintRaceResult: Pair<String, Double>?
-    ): Double {
-        var sum = 0.0
-        var dividend = 0.0
-        practiceResult?.let {
-            sum += it.second
-            dividend++
-        }
-        qualifyingResult?.let {
-            sum += it.second
-            dividend++
-        }
-        sprintQualifyingResult?.let {
-            sum += it.second
-            dividend++
-        }
-        raceResult?.let {
-            sum += it.second
-            dividend++
-        }
-        sprintRaceResult?.let {
-            sum += it.second
-            dividend++
-        }
-        return String.format("%.1f", sum / dividend).toDouble()
+    private fun mapIndexToPoints(index: Int): Double {
+        val points =
+            doubleArrayOf(20.0, 17.0, 15.0, 13.0, 11.0, 10.0, 9.0, 8.0, 7.0, 6.0, 5.0, 4.0, 3.0, 2.0, 1.0)
+        return points.getOrElse(index) { 0.0 }
+    }
+
+    private fun calculateMean(vararg results: Double?): Double {
+        val validResults = results.filterNotNull()
+        if (validResults.isEmpty()) return 0.0
+        val mean = validResults.average()
+        return String.format(Locale.US, "%.1f", mean).toDouble()
     }
 
     fun generateSessionId(meetingKey: Int, sessionKey: Int): String {
