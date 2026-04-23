@@ -6,7 +6,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties
 data class FirebaseProperties(
     val appName: String,
     val projectId: String,
-    val credentialsPath: String,
+    val credentialsPath: String?,
+    val credentials: String?,
     val databaseId: String,
     val storageBucket: String,
     val firestore: FirestoreProperties

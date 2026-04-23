@@ -19,8 +19,13 @@ class FirebaseAdminConfiguration(
 ) {
     @Bean
     fun serviceAccountCredentials(): GoogleCredentials {
-        val resource = ClassPathResource(firebaseProperties.credentialsPath)
-        return GoogleCredentials.fromStream(resource.inputStream)
+        if (firebaseProperties.credentialsPath != null) {
+            val resource = ClassPathResource(firebaseProperties.credentialsPath!!)
+            return GoogleCredentials.fromStream(resource.inputStream)
+        } else if (firebaseProperties.credentials != null) {
+            return GoogleCredentials.fromStream(firebaseProperties.credentials!!.byteInputStream())
+        }
+        return GoogleCredentials.getApplicationDefault()
     }
 
     @Bean
