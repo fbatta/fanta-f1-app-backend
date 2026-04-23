@@ -1,6 +1,11 @@
 spring:
   application:
     name: fanta-f1-app-backend
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: https://auth.battaglini.net/realms/master
 
 logging:
   level:

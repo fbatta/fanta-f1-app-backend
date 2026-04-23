@@ -11,16 +11,18 @@ import org.springframework.http.HttpEntity
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import tools.jackson.databind.ObjectMapper
 
 @RestController
+@RequestMapping(path = ["/admin"])
 class AdminOperationsController(
     private val driverService: DriverService,
     private val raceWeekendService: RaceWeekendService,
     private val objectMapper: ObjectMapper
 ) {
-    @PostMapping("/admin/drivers/costs", consumes = [MediaType.APPLICATION_JSON_VALUE])
+    @PostMapping("/drivers/costs", consumes = [MediaType.APPLICATION_JSON_VALUE])
     suspend fun updateDriversCosts(requestEntity: HttpEntity<String>) {
         try {
             val request = requestEntity.body
@@ -33,7 +35,7 @@ class AdminOperationsController(
         }
     }
 
-    @PostMapping("/admin/drivers/seed")
+    @PostMapping("/drivers/seed")
     suspend fun seedDrivers() {
         try {
             driverService.seedDrivers()
@@ -42,7 +44,7 @@ class AdminOperationsController(
         }
     }
 
-    @PostMapping("/admin/race-weekends/seed")
+    @PostMapping("/race-weekends/seed")
     suspend fun seedRaceWeekends() {
         try {
             raceWeekendService.seedRaceWeekends()
@@ -51,7 +53,7 @@ class AdminOperationsController(
         }
     }
 
-    @PostMapping("/admin/drivers/summaries")
+    @PostMapping("/drivers/summaries")
     suspend fun updateDriversSummaries(@RequestBody body: UpdateDriversSummariesRequest): DriverSummariesResponse {
         val summaries = driverService.updateDriverSummaries(body.acronyms)
         return DriverSummariesResponse(summaries)
