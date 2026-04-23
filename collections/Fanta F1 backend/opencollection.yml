@@ -15,11 +15,31 @@ config:
       bypassProxy: ""
 
 request:
+  auth:
+    type: oauth2
+    flow: authorization_code
+    authorizationUrl: "{{oauthBaseUrl}}/realms/{{realm}}/protocol/openid-connect/auth"
+    accessTokenUrl: "{{oauthBaseUrl}}/realms/{{realm}}/protocol/openid-connect/token"
+    credentials:
+      clientId: bruno-client
+      placement: body
+    scope: profile
+    pkce:
+      disabled: true
+    tokenConfig:
+      id: credentials
+      placement:
+        header: Bearer
+      source: access_token
+    settings:
+      autoFetchToken: true
+      autoRefreshToken: true
   variables:
     - name: baseUrl
       value: http://localhost:8080
+    - name: oauthBaseUrl
+      value: https://auth.battaglini.net
+    - name: realm
+      value: master
 bundled: false
-extensions:
-  ignore:
-    - node_modules
-    - .git
+extensions: {}
