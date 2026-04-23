@@ -1,0 +1,14 @@
+logging:
+  level:
+    root: debug
+
+firebase:
+  credentials-path: /credentials/serviceAccount.json
+
+seeding:
+  drivers: false
+  race-weekends: false
+
+results-calculator:
+  enable: true
+  dry-run: false

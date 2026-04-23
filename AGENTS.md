@@ -1,191 +1,114 @@
-# AGENTS.md - Fanta F1 App Backend Guidelines
+# AGENTS.md - Fanta F1 App Backend
 
-This document provides instructions for agentic coding agents (e.g., Cursor, Copilot-assisted agents) operating in this repository.
+## Stack
 
-## Build Commands
+- **Kotlin 2.3.20** + **Spring Boot 4.0.3** (WebFlux, not MVC)
+- **Java 25** enforced via toolchain in `build.gradle.kts`
+- **Firebase Admin SDK** (Firestore + Auth) — no local database
+- **OkHttp** + **OpenF1 API** + **Jolpica API** for F1 data
+- **Google GenAI** (Gemini + Imagen) for AI features
+- OAuth2 JWT resource server (Keycloak issuer: `${FANTAF1_AUTH_ISSUER_URI}`)
+- Caffeine caching, Kotlin Coroutines + Reactor
 
-### Project Structure
-- `src/main/kotlin/` - Main application source code
-- `src/test/kotlin/` - Test code
-- `src/main/resources/` - Configuration and properties
+## Commands
 
-### Build Commands
 ```bash
-# Build
-./gradlew build
-
-# Run all tests
-./gradlew test
-
-# Run a single test
-./gradlew test --tests "net.battaglini.fantaf1appbackend.controller.AdminOperationsControllerTest"
-
-# Clean and rebuild
-./gradlew clean build
+./gradlew bootRun          # Run dev server
+./gradlew build            # Compile + test
+./gradlew test             # Run all tests (JUnit Platform)
+./gradlew test --tests "net.battaglini.fantaf1appbackend.service.DriverServiceTest"
+./gradlew bootJar -x test  # Build fat JAR without tests (also used in Dockerfile)
+./gradlew dependencies     # Resolve deps (cached in Docker build)
 ```
 
-## Code Style Guidelines
+**CI/CD:** GitHub Actions on PRs to `main` and push to `main`.
+- `ci.yml`: runs `./gradlew test --no-daemon`, uploads test results on failure
+- `build-and-publish.yml`: builds and pushes Docker image to `ghcr.io` (called as reusable workflow)
 
-### Imports
-- Sort imports by category: standard library → framework dependencies → local packages
-- Group imports within a package together
-- No blank lines between import groups
-- Use single-line imports where possible; split long imports at 88 characters
-- Import only what you use; avoid wildcard imports
-- Example order:
-  ```kotlin
-  import kotlinx.coroutines.flow.*
-  import org.springframework.stereotype.Service
-  import net.battaglini.fantaf1appbackend.model.Driver
-  import net.battaglini.fantaf1appbackend.exception.DriverNotFoundException
-  import org.slf4j.LoggerFactory
-  ```
+No linting, no pre-commit hooks. Tests are the only verification gate.
 
-### Formatting
-- Indentation: 4 spaces
-- Maximum line length: 100 characters
-- Single spacing between lines
-- Blank lines before/after methods and top-level functions
-- Trailing commas in multi-line data class declarations and collection literals
-- Example:
-  ```kotlin
-  data class Driver(
-      val driverId: String,
-      val driverNumber: Int,
-  )
-  ```
+## Project Structure
 
-### Types & Data Classes
-- Prefer `data class` for record-like types: `Driver`, `DriverResult`, request/response DTOs
-- Use sealed classes for exhaustive type hierarchies
-- Use `@OptIn(ExperimentalUuidApi::class)` when using Kotlin UUID preview API
-- Avoid unnecessary getters; data classes provide auto-generated ones
-- Use `Flow<T>` for reactive streams; prefer suspension over callbacks
-
-### Naming Conventions
-- Classes: PascalCase (`Driver`, `UserService`)
-- Files: Match class name (`Driver.kt`)
-- Functions: snake_case for internal logic (`calculateDriverId`, `seedDrivers`)
-- Package: reverse-DNS style (`net.battaglini.fantaf1appbackend.*`)
-- Constants: uppercase_snake_case if needed (`MAX_SCORE`)
-- Variables/delocators: camelCase for Java compatibility (`driverId`, `teamName`
-
-### Error Handling
-- Use checked exceptions sparingly; prefer throwing specific unchecked exceptions
-- Define custom exception classes per domain: `DriverNotFoundException`, `InvalidRequestException`
-- Catch specific exceptions, rethrow with context or handle gracefully
-- Log errors with StackTrace; use debug level for expected issues:
-  ```kotlin
-  try {
-      driverRepository.findById(id)
-  } catch (e: DriverNotFoundException) {
-      throw InvalidRequestException(e.message)
-  } catch (e: Exception) {
-      LOGGER.error("Unexpected error", e)
-      throw RuntimeException(e.message)
-  }
-  ```
-- Never swallow exceptions without logging
-- Use `@Suppress("SWITCH_EXHAUSTIVE_CHECK_WARNING")` when necessary for Kotlin's exhaustivity check, documenting why the case is impossible
-
-### Coroutines
-- Always suspend top-level functions and suspend functions in classes
-- Use `suspend` for async operations; avoid blocking calls in suspending functions
-- Use `flow {}` collect in `awaitSingle()` or materialized collection for side effects
-- Prefer `CoroutineScope` over top-level dispatchers; inject scope via constructor
-- Cancel scopes properly in `@PreDestroy` or finally-blocks
-
-### Logging
-- Use SLF4J via `LoggingService` or `LoggerFactory`
-- Appropriate levels: `info` (expected), `debug` (detailed), `error` (issues)
-- Avoid logging sensitive data
-- Include contextual information in log messages
-
-## Testing Guidelines
-
-### Test Structure
-- Each test is a method decorated with `@Test`
-- Use descriptive test names starting with the expected behavior:
-  ```kotlin
-  fun `updateDriversCosts should return 200 OK when request is valid`() { }
-  ```
-- Place test files in same package as source code under `*Test` suffix
-- Use `@WebFluxTest` for controller tests; `@SpringBootTest` for integration tests
-
-### Test Best Practices
-- Use MockK for mocking: `mockkBean()`, `coEvery()`, `coVerify()`
-- Arrange-Act-Assert pattern: setup → invoke → verify
-- Keep tests independent; no shared state between tests
-- Use transactional for database cleanup when testing repository layer
-- Mock external services: `openF1Client`, `firebaseClient`
-- Test error paths explicitly with expected exceptions
-
-### Example Test
-```kotlin
-@Test
-fun `getDrivers returns active drivers when filter is applied`() {
-    val repository = mockk<DriverRepository>()
-    every { repository.getDrivers() } returns activeDrivers
-    val flow = DriverService(driverRepository = repository).getDriversInSessions(emptyList())
-    val result = flow.toList()
-    assertTrue(result.size == activeDrivers.size)
-    verify(repository).getDrivers()
-}
 ```
+src/main/kotlin/net/battaglini/fantaf1appbackend/
+├── FantaF1AppBackendApplication.kt   # Entry point
+├── client/                           # OpenF1Client (@Component), GenAIClient (interface + GenAIClientImpl)
+├── configuration/                    # Firebase, Security, Cache, Properties (14 config classes)
+├── controller/                       # AdminOperationsController, NotificationsController
+├── deserializer/                     # KotlinInstantDeserializer, OpenF1 deserializers
+├── enums/                            # RaceWeekendSessionType, TaskType, UserNotificationType, openf1/
+├── exception/                        # DriverNotFoundException, InvalidRequestException, NotFoundException
+├── model/                            # Domain models (root) + openf1/ DTOs + request/ + response/
+├── repository/                       # Firestore repos (11 repos, all return Flow)
+├── serializer/                       # KotlinInstantSerializer
+├── service/                          # Business logic (most use interface + *Impl pattern)
+└── task/                             # @Scheduled tasks (4 tasks: results calc, notifications, lineup)
+```
+
+Test mirror: `src/test/kotlin/...` with `*Test` suffix.
+
+## Key Facts
+
+- **Reactive only** — WebFlux, `Flow<T>`, `suspend` functions. Never use blocking calls in suspending functions.
+- **Service layer** — Most services use interface + `*Impl` pattern (e.g. `DriverService` + `DriverServiceImpl`). Inject the interface. Exceptions: `QualifyingResultsService`, `RaceWeekendService`, `RaceResultsService`, `PracticeResultsService` are interfaces without separate impl files.
+- **Firestore repos return `Flow`** — repository methods are reactive streams.
+- **OpenF1Client** is a `@Component` (not interface+impl), uses `@Cacheable` annotations for Caffeine caching.
+- **No ktlint/detekt** — rely on Kotlin compiler + `./gradlew build` for style checks.
+- **Firebase credentials** mounted at `/credentials/serviceAccount.json` via docker-compose volume.
+- **`GOOGLE_GENAI_API_KEY`** env var required for AI features.
+- **`FANTAF1_AUTH_ISSUER_URI`** env var required — not a hardcoded URL.
+- **Seeding flags** in `application.yaml`: `seeding.drivers` and `seeding.race-weekends` (both default `false`).
+- **Results calculator** scheduler: `results-calculator.enable` (default `true`), `results-calculator.dry-run` (default `false`).
+- **Firestore pagination** limit is 100 (`firebase.firestore.pagination.query-limit`).
+
+## Testing
+
+- **MockK** (`mockk`, `springmockk`) — use `coEvery`/`coVerify` for suspend functions, `every`/`verify` for regular.
+- Tests use `@ExtendWith(MockKExtension::class)` with `@MockK` and `@InjectMockKs` annotations.
+- **Spring WebFlux tests** — `@WebFluxTest` for controllers, `@SpringBootTest` for integration.
+- Tests use JUnit Platform (`useJUnitPlatform()` in build.gradle.kts).
+- No transactional DB cleanup needed (Firestore is mocked).
+- Mock external services: `openF1Client`, `genAIService`, repositories.
+- Test dependencies include `mockwebserver`, `kotlinx-coroutines-test`, and Spring test starters for security/webflux.
 
 ## Security
 
-- Never commit sensitive secrets (tokens, keys, credentials)
-- Use `.gitignore` for `*.json`, `*.pem`, `.env`
-- Always validate user input to prevent injection attacks
-- Use Spring Security best practices: role-based access control
-- Validate Firebase SDK initialization before operations
-
-## API Design
-
-- Follow RESTful conventions: CRUD endpoints with standard HTTP methods
-- Return appropriate status codes: 200 (success), 201 (created), 400 (bad request), 401 (unauthorized), 404 (not found), 500 (server error)
-- Use data classes for request/response DTOs
-- Use `@RequestBody` for POST/PUT, `@RequestParam` for queries
-
-## Security
-
-- Never commit sensitive secrets (tokens, keys, credentials)
-- Use `.gitignore` for `*.json`, `*.pem`, `.env`
-- Always validate user input to prevent injection attacks
-- Use Spring Security: role-based access control
-
-## Common Pitfalls
-
-1. **Swallowing exceptions** - Always handle or rethrow with context
-2. **Memory leaks** - Properly dispose scopes; cancel flows before scope cancellation
-3. **Race conditions** - Use `MutableStateFlow` or `Mutex` for mutable state
-4. **Unhandled errors** - Log errors; don't let stack traces hit production unhandled
-5. **Missing validation** - Validate inputs; use `@Valid` or manual checks
+- Never commit secrets (Firebase keys, API keys, `.env`).
+- `.gitignore` covers `*.json`, `*.pem`, `.env`.
+- Role-based access via Spring Security OAuth2 resource server.
+- Firestore rules in `firestore.rules` — read/write permissions per collection.
+- Firestore indexes defined in `firestore.indexes.json`.
 
 ## Environment
 
 | Config Key | Required | Default |
 |------------|----------|---------|
-| firebase.project.id | Yes | - |
-| service-account-file.path | Yes | - |
-| openf1.api.url | Yes | - |
-| seeding.drivers | No | false |
-| results-calculator.enabled | No | true |
+| FANTAF1_AUTH_ISSUER_URI | Yes | - |
+| GOOGLE_GENAI_API_KEY | Yes | - |
+| firebase.project-id | No | `fantaf1-beitz25` |
+| firebase.credentials-path | No | `/credentials/serviceAccount.json` |
+| firebase.storage-bucket | No | `fantaf1-beitz25.firebasestorage.app` |
+| firebase.database-id | No | `(default)` |
+| open-f1.base-url | No | `https://api.openf1.org` |
+| open-f1.api-version | No | `v1` |
+| jolpica.base-url | No | `https://api.jolpi.ca/ergast/f1/` |
+| google.genai.chat-model | No | `gemini-flash-latest` |
+| google.genai.image-model | No | `imagen-3.0-generate-002` |
+| seeding.drivers | No | `false` |
+| seeding.race-weekends | No | `false` |
+| results-calculator.enable | No | `true` |
+| results-calculator.dry-run | No | `false` |
+| notifications.lineup.close-reminder-time-before | No | `12h` |
 
-## Debugging
+## Configuration Profiles
 
-```bash
-# Enable debug logging
-./gradlew run --debug -Dlogging.level.net.battaglini=DEBUG
+Three profiles: `application.yaml` (base), `application-local.yaml` (local dev), `application-production.yaml` (prod).
+- **Docker/CIs** — runtime forces `SPRING_PROFILES_ACTIVE=production` (via `-Dspring.profiles.active=production` in Dockerfile ENTRYPOINT).
+- **`docker-compose.yaml`** — sets `SPRING_PROFILES_ACTIVE=production` via env var.
+- **Local dev** (`./gradlew bootRun`) — no profile set, uses base `application.yaml` only.
 
-# Profile application
-./gradlew bootRun -Dspring.main.banner-mode=off
-```
+## Docker
 
-## Resources
-
-- [Spring Boot](https://spring.io/projects/spring-boot)
-- [Kotlin Docs](https://kotlinlang.org/docs/home.html)
-- [OpenF1 API](https://openf1.org/)
-- [Firebase Admin SDK](https://github.com/firebase/firebase-admin-java)
+Multi-stage build: `eclipse-temurin:25-jdk` builder → `eclipse-temurin:25-jre` runtime (non-root user `spring`).
+Credentials mounted via `docker-compose.yaml`: `./src/main/resources/credentials:/credentials:ro`.
+Dockerfile does NOT mount credentials — that's done in docker-compose.
