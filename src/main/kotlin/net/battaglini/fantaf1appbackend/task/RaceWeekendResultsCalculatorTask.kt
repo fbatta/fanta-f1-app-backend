@@ -25,7 +25,7 @@ import net.battaglini.fantaf1appbackend.service.RaceResultsService
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
-import java.util.Locale
+import java.util.*
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.minutes
@@ -44,7 +44,8 @@ class RaceWeekendResultsCalculatorTask(
     private val openF1Client: OpenF1Client,
     private val driverRepository: DriverRepository,
     private val taskChannel: Channel<ChannelConfiguration.Companion.TaskChannelMessage>,
-    private val clock: Clock
+    private val clock: Clock,
+    private val timeZone: TimeZone
 ) {
     @Scheduled(fixedRate = 180_000, initialDelay = 15_000)
     suspend fun runTask() {
@@ -69,9 +70,12 @@ class RaceWeekendResultsCalculatorTask(
 
             val raceWeekend = createRaceWeekend(meeting)
 
-            val combinedPracticeResults = fetchResults { practiceResultsService.getDriversResultsForCombinedPractice(raceWeekend) }
-            val qualifyingResults = fetchResults { qualifyingResultsService.getDriversResultsForQualifying(raceWeekend, false) }
-            val sprintQualifyingResults = fetchResults { qualifyingResultsService.getDriversResultsForQualifying(raceWeekend, true) }
+            val combinedPracticeResults =
+                fetchResults { practiceResultsService.getDriversResultsForCombinedPractice(raceWeekend) }
+            val qualifyingResults =
+                fetchResults { qualifyingResultsService.getDriversResultsForQualifying(raceWeekend, false) }
+            val sprintQualifyingResults =
+                fetchResults { qualifyingResultsService.getDriversResultsForQualifying(raceWeekend, true) }
             val raceResults = fetchResults { raceResultsService.getResultsForRace(raceWeekend, false) }
             val sprintRaceResults = fetchResults { raceResultsService.getResultsForRace(raceWeekend, true) }
 
@@ -102,7 +106,7 @@ class RaceWeekendResultsCalculatorTask(
 
     private suspend fun findCurrentMeeting(): OpenF1MeetingResponse? {
         val now = clock.now()
-        val nowLocal = now.toLocalDateTime(TimeZone.currentSystemDefault())
+        val nowLocal = now.toLocalDateTime(timeZone)
         val meeting = openF1Client.getRaces(year = nowLocal.year).firstOrNull { meeting ->
             val endInstant = meeting.dateEnd.toInstant(meeting.gmtOffset)
             val difference = now - endInstant

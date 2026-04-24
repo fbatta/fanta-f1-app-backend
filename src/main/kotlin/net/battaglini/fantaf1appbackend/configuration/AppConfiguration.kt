@@ -11,5 +11,6 @@ class AppConfiguration {
     fun clock(): Clock = Clock.System
 
     @Bean
-    fun timeZone(): TimeZone = TimeZone.currentSystemDefault()
+    fun timeZone(appProperties: AppProperties): TimeZone =
+        appProperties.timeZone?.let { TimeZone.of(it) } ?: TimeZone.currentSystemDefault()
 }

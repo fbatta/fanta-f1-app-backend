@@ -26,7 +26,8 @@ class RaceWeekendServiceImpl(
     private val openF1Client: OpenF1Client,
     private val raceRepository: RaceRepository,
     private val seedingProperties: SeedingProperties,
-    private val clock: Clock
+    private val clock: Clock,
+    private val timeZone: TimeZone
 ) : RaceWeekendService {
     @EventListener(ApplicationStartedEvent::class)
     private suspend fun onStart() {
@@ -40,7 +41,7 @@ class RaceWeekendServiceImpl(
     override suspend fun seedRaceWeekends() {
         try {
             LOGGER.info("Seeding F1 race weekends...")
-            val year = clock.now().toLocalDateTime(TimeZone.currentSystemDefault()).year
+            val year = clock.now().toLocalDateTime(timeZone).year
 
             val races = openF1Client.getRaces(year = year).map { meeting ->
                 val sessions = openF1Client.getSessions(meeting.meetingKey)

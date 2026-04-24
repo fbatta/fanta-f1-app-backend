@@ -24,6 +24,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import kotlin.time.Clock
 import kotlin.time.Instant
+import kotlinx.datetime.TimeZone
 
 @ExtendWith(MockKExtension::class)
 class TeamsResultsCalculatorTaskTest {
@@ -48,6 +49,9 @@ class TeamsResultsCalculatorTaskTest {
 
     @MockK
     lateinit var clock: Clock
+
+    @MockK(relaxed = true)
+    lateinit var timeZone: TimeZone
 
     @InjectMockKs
     lateinit var task: TeamsResultsCalculatorTask
