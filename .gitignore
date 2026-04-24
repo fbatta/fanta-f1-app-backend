@@ -45,3 +45,6 @@ src/main/resources/credentials
 ### Local .env files ###
 .env.local
 .env.local.*
+
+### Opencode ###
+.opencode
