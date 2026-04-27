@@ -38,8 +38,8 @@ $$Cost_{raw} = 20 + (P_D / 20) \times (85 - 20)$$
 
 ### 4.2 Integration Flow
 1.  **Trigger:** `RaceWeekendResultsCalculatorTask` finishes saving results.
-2.  **Event:** It currently sends `RACE_WEEKEND_RESULTS_CALCULATION_COMPLETED` to `taskChannel`.
-3.  **Listener:** A new `@Scheduled` task or a coroutine-based listener in `NotificationsTask` (or a dedicated `PricingTask`) picks up the message.
+2.  **Event:** It sends `RACE_WEEKEND_RESULTS_CALCULATION_COMPLETED` to `taskChannel`.
+3.  **Listener:** A dedicated `PricingTask` picks up the message from the `taskChannel`.
 4.  **Process:** 
     *   Fetch last 3 `RaceWeekendResult` objects.
     *   Calculate $P_D$ for all active drivers.
