@@ -24,9 +24,9 @@ class PricingTask(
         scope.launch {
             LOGGER.info("PricingTask started, listening for results calculation completed events")
             for (message in taskChannel) {
-                if (message.type == TaskType.RACE_WEEKEND_RESULTS_CALCULATION_COMPLETED) {
+                if (message.taskType == TaskType.RACE_WEEKEND_RESULTS_CALCULATION_COMPLETED) {
                     try {
-                        val result = message.payload as RaceWeekendResult
+                        val result = message.data as RaceWeekendResult
                         LOGGER.info("Received results for {}, triggering price update", result.raceName)
                         driverPricingService.calculateAndUpdatePrices(result.raceId)
                     } catch (e: Exception) {

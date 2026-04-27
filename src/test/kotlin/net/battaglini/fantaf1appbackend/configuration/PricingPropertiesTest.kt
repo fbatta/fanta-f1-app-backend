@@ -4,12 +4,18 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import org.springframework.test.context.ContextConfiguration
 
 @SpringBootTest
 @ActiveProfiles("test")
+@ContextConfiguration(classes = [PricingPropertiesTest.Config::class])
 class PricingPropertiesTest {
+
+    @EnableConfigurationProperties(PricingProperties::class)
+    class Config
 
     @Autowired
     lateinit var pricingProperties: PricingProperties
