@@ -24,7 +24,7 @@ jolpica:
 firebase:
   app-name: fantaf1
   project-id: fantaf1-beitz25
-  credentials-path: /credentials/fakeServiceAccount.json
+  credentials-path: /credentials/serviceAccount.json
   database-id: (default)
   storage-bucket: fantaf1-beitz25.firebasestorage.app
   firestore:

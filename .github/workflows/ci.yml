@@ -25,6 +25,11 @@ jobs:
       - name: Grant execute permission on gradlew
         run: chmod +x gradlew
 
+      - name: Create service account file
+        run: |
+          mkdir -p ./src/main/resources/credentials
+          printf '%s' '${{ secrets.FIREBASE_ADMIN_SDK_SERVICE_ACCOUNT }}' > ./src/main/resources/credentials/serviceAccount.json
+
       - name: Run all tests
         run: ./gradlew test --no-daemon
 
