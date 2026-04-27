@@ -6,10 +6,15 @@ package net.battaglini.fantaf1appbackend.service
  */
 interface DriverPricingService {
     /**
-     * Calculates new costs for all active drivers based on the last N race results.
-     * Updates the costs in the repository.
+     * Calculates new costs for drivers based on the last N race results.
      * 
-     * @param lastRaceId The ID of the race that just finished.
+     * @param lastRaceId The ID of the race to use as the anchor. If null, uses the latest race with results.
+     * @param acronyms Optional list of driver acronyms to update. If null/empty and updateAll is false, does nothing.
+     * @param updateAll If true, updates all active drivers regardless of the acronyms list.
      */
-    suspend fun calculateAndUpdatePrices(lastRaceId: String)
+    suspend fun calculateAndUpdatePrices(
+        lastRaceId: String? = null,
+        acronyms: List<String>? = null,
+        updateAll: Boolean = false
+    )
 }

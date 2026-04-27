@@ -23,13 +23,17 @@ class DriverPricingServiceImpl(
     private val pricingProperties: PricingProperties
 ) : DriverPricingService {
 
-    override suspend fun calculateAndUpdatePrices(lastRaceId: String) {
+    override suspend fun calculateAndUpdatePrices(
+        lastRaceId: String?,
+        acronyms: List<String>?,
+        updateAll: Boolean
+    ) {
         if (!pricingProperties.enable) {
             LOGGER.info("Driver pricing is disabled.")
             return
         }
 
-        LOGGER.info("Starting driver pricing recalculation for raceId={}", lastRaceId)
+        LOGGER.info("Starting driver pricing recalculation for raceId={}, acronyms={}, updateAll={}", lastRaceId, acronyms, updateAll)
 
         val activeDrivers = driverRepository.getDrivers().toList().filter { it.isActive }
         if (activeDrivers.isEmpty()) {
@@ -41,9 +45,15 @@ class DriverPricingServiceImpl(
         val allRaces = raceRepository.getRacesByYear(currentYear).toList()
             .sortedBy { it.dateStart }
 
-        val lastRaceDateStart = allRaces.find { r -> r.raceId == lastRaceId }?.dateStart
+        val effectiveLastRaceId = lastRaceId ?: allRaces.lastOrNull()?.raceId
+        if (effectiveLastRaceId == null) {
+            LOGGER.warn("No race found to use as anchor for pricing recalculation.")
+            return
+        }
+
+        val lastRaceDateStart = allRaces.find { r -> r.raceId == effectiveLastRaceId }?.dateStart
         if (lastRaceDateStart == null) {
-            LOGGER.warn("Last race with id {} not found in current year races.", lastRaceId)
+            LOGGER.warn("Last race with id {} not found in current year races.", effectiveLastRaceId)
             return
         }
 
