@@ -22,6 +22,7 @@ request:
     accessTokenUrl: "{{oauthBaseUrl}}/realms/{{realm}}/protocol/openid-connect/token"
     credentials:
       clientId: bruno-client
+      clientSecret: "{{clientSecret}}"
       placement: body
     scope: profile
     pkce:

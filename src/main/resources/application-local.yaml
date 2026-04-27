@@ -1,9 +1,25 @@
 logging:
   level:
-    root: debug
+    root: info
 
 firebase:
+  app-name: fantaf1
+  database-id: (default)
+  storage-bucket: fantaf1-beitz25.firebasestorage.app
   credentials-path: /credentials/serviceAccount.json
+  project-id: fantaf1-beitz25
+  firestore:
+    pagination:
+      query-limit: 100
+
+google:
+  genai:
+    chat-model: 'gemini-flash-latest'
+    default-output-tokens: 1000
+    image-model: 'imagen-3.0-generate-002'
+    api-key: ${GOOGLE_GENAI_API_KEY}
+    chat-model-thinking: 'gemma-4-31b-it'
+    default-thinking-budget: 1000
 
 seeding:
   drivers: false
@@ -12,3 +28,5 @@ seeding:
 results-calculator:
   enable: true
   dry-run: false
+pricing:
+  dry-run: true
