@@ -19,7 +19,7 @@ class PricingPropertiesTest {
         assertTrue(pricingProperties.enable)
         assertEquals(false, pricingProperties.dryRun)
         assertEquals(3, pricingProperties.rollingWindowSize)
-        assertEquals(0.7, pricingProperties.driverWeight)
+        assertEquals(0.8, pricingProperties.driverWeight)
         assertEquals(0.2, pricingProperties.teamWeight)
         assertEquals(20.0, pricingProperties.priceFloor)
         assertEquals(85.0, pricingProperties.priceCeiling)
