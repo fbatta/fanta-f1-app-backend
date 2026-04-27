@@ -3,10 +3,13 @@ package net.battaglini.fantaf1appbackend.controller
 import net.battaglini.fantaf1appbackend.exception.DriverNotFoundException
 import net.battaglini.fantaf1appbackend.exception.InvalidRequestException
 import net.battaglini.fantaf1appbackend.model.request.UpdateDriversCostsRequest
+import net.battaglini.fantaf1appbackend.model.request.UpdateDriversPricesRequest
 import net.battaglini.fantaf1appbackend.model.request.UpdateDriversSummariesRequest
 import net.battaglini.fantaf1appbackend.model.response.DriverSummariesResponse
+import net.battaglini.fantaf1appbackend.service.DriverPricingService
 import net.battaglini.fantaf1appbackend.service.DriverService
 import net.battaglini.fantaf1appbackend.service.RaceWeekendService
+import org.slf4j.LoggerFactory
 import org.springframework.http.HttpEntity
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.PostMapping
@@ -19,6 +22,7 @@ import tools.jackson.databind.ObjectMapper
 @RequestMapping(path = ["/admin"])
 class AdminOperationsController(
     private val driverService: DriverService,
+    private val driverPricingService: DriverPricingService,
     private val raceWeekendService: RaceWeekendService,
     private val objectMapper: ObjectMapper
 ) {
@@ -57,5 +61,22 @@ class AdminOperationsController(
     suspend fun updateDriversSummaries(@RequestBody body: UpdateDriversSummariesRequest): DriverSummariesResponse {
         val summaries = driverService.updateDriverSummaries(body.acronyms)
         return DriverSummariesResponse(summaries)
+    }
+
+    @PostMapping("/drivers/prices")
+    suspend fun updateDriversPrices(@RequestBody request: net.battaglini.fantaf1appbackend.model.request.UpdateDriversPricesRequest) {
+        try {
+            driverPricingService.calculateAndUpdatePrices(
+                acronyms = request.acronyms,
+                updateAll = request.updateAllDrivers
+            )
+        } catch (e: Exception) {
+            LOGGER.error("Failed to manually update driver prices", e)
+            throw RuntimeException(e.message)
+        }
+    }
+
+    companion object {
+        private val LOGGER = org.slf4j.LoggerFactory.getLogger(AdminOperationsController::class.java)
     }
 }

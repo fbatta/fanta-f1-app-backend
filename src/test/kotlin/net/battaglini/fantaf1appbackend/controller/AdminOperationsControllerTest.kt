@@ -30,6 +30,9 @@ class AdminOperationsControllerTest {
     private lateinit var driverService: DriverService
 
     @MockkBean
+    private lateinit var driverPricingService: net.battaglini.fantaf1appbackend.service.DriverPricingService
+
+    @MockkBean
     private lateinit var raceWeekendService: RaceWeekendService
 
     @MockkBean
@@ -208,5 +211,44 @@ class AdminOperationsControllerTest {
             .expectStatus().is5xxServerError
 
         coVerify { raceWeekendService.seedRaceWeekends() }
+    }
+
+    @Test
+    @WithMockUser(roles = ["ADMIN"])
+    fun `updateDriversPrices should return 200 OK when request is valid`() {
+        val request = net.battaglini.fantaf1appbackend.model.request.UpdateDriversPricesRequest(
+            acronyms = listOf("VER"),
+            updateAllDrivers = false
+        )
+        coEvery { driverPricingService.calculateAndUpdatePrices(acronyms = any(), updateAll = any()) } returns Unit
+
+        webTestClient
+            .mutateWith(csrf())
+            .post()
+            .uri("/admin/drivers/prices")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(request)
+            .exchange()
+            .expectStatus().isOk
+
+        coVerify { driverPricingService.calculateAndUpdatePrices(acronyms = listOf("VER"), updateAll = false) }
+    }
+
+    @Test
+    @WithMockUser(roles = ["ADMIN"])
+    fun `updateDriversPrices should return 500 when service fails`() {
+        val request = net.battaglini.fantaf1appbackend.model.request.UpdateDriversPricesRequest(
+            updateAllDrivers = true
+        )
+        coEvery { driverPricingService.calculateAndUpdatePrices(updateAll = true) } throws RuntimeException("Error")
+
+        webTestClient
+            .mutateWith(csrf())
+            .post()
+            .uri("/admin/drivers/prices")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(request)
+            .exchange()
+            .expectStatus().is5xxServerError
     }
 }
