@@ -30,3 +30,14 @@ firebase:
   firestore:
     pagination:
       query-limit: 100
+
+pricing:
+  enable: true
+  dry-run: false
+  rolling-window-size: 3
+  driver-weight: 0.7
+  team-weight: 0.2
+  price-floor: 20.0
+  price-ceiling: 85.0
+  target-avg-price: 50.0
+  max-avg-price-threshold: 52.0

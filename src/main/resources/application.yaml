@@ -21,3 +21,13 @@ open-f1:
 notifications:
   lineup:
     close-reminder-time-before: 12h
+pricing:
+  enable: true
+  dry-run: false
+  rolling-window-size: 3
+  driver-weight: 0.8
+  team-weight: 0.2
+  price-floor: 20.0
+  price-ceiling: 85.0
+  target-avg-price: 50.0
+  max-avg-price-threshold: 52.0
