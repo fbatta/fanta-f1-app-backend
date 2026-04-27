@@ -28,7 +28,10 @@ class PricingTask(
                     try {
                         val result = message.data as RaceWeekendResult
                         LOGGER.info("Received results for {}, triggering price update", result.raceName)
-                        driverPricingService.calculateAndUpdatePrices(result.raceId)
+                        driverPricingService.calculateAndUpdatePrices(
+                            lastRaceId = result.raceId,
+                            updateAll = true
+                        )
                     } catch (e: Exception) {
                         LOGGER.error("Error processing pricing update for message: $message", e)
                     }
