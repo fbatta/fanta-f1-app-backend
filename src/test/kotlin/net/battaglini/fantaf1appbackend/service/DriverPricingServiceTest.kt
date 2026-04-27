@@ -74,9 +74,20 @@ class DriverPricingServiceTest {
         coEvery { driverCostRepository.createOrUpdateDriversCosts(any()) } returns Unit
 
         // Act
-        service.calculateAndUpdatePrices("r3", updateAll = true)
+        val updates = service.calculateAndUpdatePrices("r3", updateAll = true)
 
         // Assert
+        assertEquals(2, updates.size)
+        val d1Update = updates.find { it.driverId == "d1" }!!
+        assertEquals(20.0, d1Update.previousPrice) // Floor since currentCostsMap is empty
+        assertEquals(63.0, d1Update.newPrice)
+        assertEquals(215.0, d1Update.percentageChange)
+
+        val d2Update = updates.find { it.driverId == "d2" }!!
+        assertEquals(20.0, d2Update.previousPrice)
+        assertEquals(47.0, d2Update.newPrice)
+        assertEquals(135.0, d2Update.percentageChange)
+
         coVerify {
             driverCostRepository.createOrUpdateDriversCosts(withArg { costs ->
                 assertEquals(2, costs.size)

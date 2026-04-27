@@ -9,6 +9,7 @@ import net.battaglini.fantaf1appbackend.repository.DriverCostRepository
 import net.battaglini.fantaf1appbackend.repository.DriverRepository
 import net.battaglini.fantaf1appbackend.repository.RaceRepository
 import net.battaglini.fantaf1appbackend.repository.RaceWeekendResultRepository
+import net.battaglini.fantaf1appbackend.model.response.DriverPriceUpdateDetails
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.util.*
@@ -27,10 +28,10 @@ class DriverPricingServiceImpl(
         lastRaceId: String?,
         acronyms: List<String>?,
         updateAll: Boolean
-    ) {
+    ): List<DriverPriceUpdateDetails> {
         if (!pricingProperties.enable) {
             LOGGER.info("Driver pricing is disabled.")
-            return
+            return emptyList()
         }
 
         LOGGER.info(
@@ -43,7 +44,7 @@ class DriverPricingServiceImpl(
         val activeDrivers = driverRepository.getDrivers().toList().filter { it.isActive }
         if (activeDrivers.isEmpty()) {
             LOGGER.warn("No active drivers found for pricing recalculation.")
-            return
+            return emptyList()
         }
 
         val currentYear = Calendar.getInstance().get(Calendar.YEAR)
@@ -53,13 +54,13 @@ class DriverPricingServiceImpl(
         val effectiveLastRaceId = lastRaceId ?: findLatestRaceIdWithResults(allRaces)
         if (effectiveLastRaceId == null) {
             LOGGER.warn("No race found to use as anchor for pricing recalculation.")
-            return
+            return emptyList()
         }
 
         val lastRaceDateStart = allRaces.find { r -> r.raceId == effectiveLastRaceId }?.dateStart
         if (lastRaceDateStart == null) {
             LOGGER.warn("Last race with id {} not found in current year races.", effectiveLastRaceId)
-            return
+            return emptyList()
         }
 
         val lastRaces = allRaces.filter { it.dateStart <= lastRaceDateStart }
@@ -79,7 +80,7 @@ class DriverPricingServiceImpl(
             }
             else -> {
                 LOGGER.info("No drivers specified for update and updateAll is false. Skipping.")
-                return
+                return emptyList()
             }
         }
 
@@ -112,6 +113,24 @@ class DriverPricingServiceImpl(
                 "Successfully updated driver costs for {} drivers. Grid average: {}",
                 finalUpdatedCosts.size,
                 gridAvg
+            )
+        }
+
+        return finalUpdatedCosts.map { newCost ->
+            val driver = activeDrivers.find { it.driverId == newCost.driverId }!!
+            val previousCost = currentCostsMap[newCost.driverId]?.driverCost ?: pricingProperties.priceFloor
+            val newPrice = newCost.driverCost
+            val percentageChange = if (previousCost != 0.0) {
+                ((newPrice - previousCost) / previousCost) * 100.0
+            } else {
+                0.0
+            }
+            DriverPriceUpdateDetails(
+                driverId = driver.driverId,
+                acronym = driver.acronym,
+                previousPrice = previousCost,
+                newPrice = newPrice,
+                percentageChange = (percentageChange * 100).roundToLong() / 100.0 // Round to 2 decimals
             )
         }
     }

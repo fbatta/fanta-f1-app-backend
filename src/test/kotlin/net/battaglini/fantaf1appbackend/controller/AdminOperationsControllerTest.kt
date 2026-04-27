@@ -220,7 +220,14 @@ class AdminOperationsControllerTest {
             acronyms = listOf("VER"),
             updateAllDrivers = false
         )
-        coEvery { driverPricingService.calculateAndUpdatePrices(acronyms = any(), updateAll = any()) } returns Unit
+        val mockUpdate = net.battaglini.fantaf1appbackend.model.response.DriverPriceUpdateDetails(
+            driverId = "d1",
+            acronym = "VER",
+            previousPrice = 40.0,
+            newPrice = 45.0,
+            percentageChange = 12.5
+        )
+        coEvery { driverPricingService.calculateAndUpdatePrices(acronyms = any(), updateAll = any()) } returns listOf(mockUpdate)
 
         webTestClient
             .mutateWith(csrf())
@@ -230,6 +237,10 @@ class AdminOperationsControllerTest {
             .bodyValue(request)
             .exchange()
             .expectStatus().isOk
+            .expectBody()
+            .jsonPath("$.updates[0].driverId").isEqualTo("d1")
+            .jsonPath("$.updates[0].acronym").isEqualTo("VER")
+            .jsonPath("$.updates[0].newPrice").isEqualTo(45.0)
 
         coVerify { driverPricingService.calculateAndUpdatePrices(acronyms = listOf("VER"), updateAll = false) }
     }

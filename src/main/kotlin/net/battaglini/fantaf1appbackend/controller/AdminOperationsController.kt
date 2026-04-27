@@ -5,6 +5,7 @@ import net.battaglini.fantaf1appbackend.exception.InvalidRequestException
 import net.battaglini.fantaf1appbackend.model.request.UpdateDriversCostsRequest
 import net.battaglini.fantaf1appbackend.model.request.UpdateDriversPricesRequest
 import net.battaglini.fantaf1appbackend.model.request.UpdateDriversSummariesRequest
+import net.battaglini.fantaf1appbackend.model.response.DriverPriceUpdateResponse
 import net.battaglini.fantaf1appbackend.model.response.DriverSummariesResponse
 import net.battaglini.fantaf1appbackend.service.DriverPricingService
 import net.battaglini.fantaf1appbackend.service.DriverService
@@ -64,12 +65,13 @@ class AdminOperationsController(
     }
 
     @PostMapping("/drivers/prices")
-    suspend fun updateDriversPrices(@RequestBody request: net.battaglini.fantaf1appbackend.model.request.UpdateDriversPricesRequest) {
+    suspend fun updateDriversPrices(@RequestBody request: UpdateDriversPricesRequest): DriverPriceUpdateResponse {
         try {
-            driverPricingService.calculateAndUpdatePrices(
+            val updates = driverPricingService.calculateAndUpdatePrices(
                 acronyms = request.acronyms,
                 updateAll = request.updateAllDrivers
             )
+            return DriverPriceUpdateResponse(updates)
         } catch (e: Exception) {
             LOGGER.error("Failed to manually update driver prices", e)
             throw RuntimeException(e.message)
