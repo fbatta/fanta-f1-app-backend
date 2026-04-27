@@ -1,6 +1,5 @@
 package net.battaglini.fantaf1appbackend
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.springframework.boot.test.context.SpringBootTest
 
@@ -8,7 +7,6 @@ import org.springframework.boot.test.context.SpringBootTest
 class FantaF1AppBackendApplicationTests {
 
     @Test
-    @Disabled
     fun contextLoads() {
     }
 
