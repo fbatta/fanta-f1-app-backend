@@ -2,10 +2,10 @@ name: CI
 
 on:
   pull_request:
-    branches: [main]
-    types: [opened, synchronize, reopened]
+    branches: [ main ]
+    types: [ opened, synchronize, reopened ]
   push:
-    branches: [main]
+    branches: [ main ]
 
 jobs:
   test:
@@ -13,24 +13,29 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up JDK 25
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           java-version: "25"
-          distribution: "temurin"
+          distribution: "zulu"
           cache: gradle
 
       - name: Grant execute permission on gradlew
         run: chmod +x gradlew
+
+      - name: Create service account file
+        run: |
+          mkdir -p ./src/main/resources/credentials
+          printf '%s' '${{ secrets.FIREBASE_ADMIN_SDK_SERVICE_ACCOUNT }}' > ./src/main/resources/credentials/serviceAccount.json
 
       - name: Run all tests
         run: ./gradlew test --no-daemon
 
       - name: Upload test results on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: test-results
           path: build/reports/tests/test/
@@ -39,6 +44,9 @@ jobs:
     needs: test
     if: success()
     uses: ./.github/workflows/build-and-publish.yml
+    permissions:
+      contents: read
+      packages: write
     with:
       ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
       tag: ${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || 'latest' }}

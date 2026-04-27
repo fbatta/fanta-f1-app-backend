@@ -16,7 +16,8 @@ import kotlin.time.Instant
 @Repository
 class RaceRepository(
     private val firestore: Firestore,
-    private val objectMapper: ObjectMapper
+    private val objectMapper: ObjectMapper,
+    private val timeZone: TimeZone
 ) {
     suspend fun createOrUpdateRaces(races: List<RaceWeekend>) {
         withContext(Dispatchers.IO) {
@@ -48,9 +49,9 @@ class RaceRepository(
 
     suspend fun getRacesByYear(year: Int): Flow<RaceWeekend> {
         val startOfYearTimestamp =
-            LocalDateTime.parse("$year-01-01T00:00:00").toInstant(TimeZone.currentSystemDefault()).toEpochMilliseconds()
+            LocalDateTime.parse("$year-01-01T00:00:00").toInstant(timeZone).toEpochMilliseconds()
         val endOfYearTimestamp =
-            LocalDateTime.parse("$year-12-31T23:59:59").toInstant(TimeZone.currentSystemDefault()).toEpochMilliseconds()
+            LocalDateTime.parse("$year-12-31T23:59:59").toInstant(timeZone).toEpochMilliseconds()
         return withContext(Dispatchers.IO) {
             firestore.collection(COLLECTION_PATH)
                 .whereGreaterThanOrEqualTo(RaceWeekend::dateStart.name, startOfYearTimestamp)

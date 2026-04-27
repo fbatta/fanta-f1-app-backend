@@ -19,7 +19,7 @@ import net.battaglini.fantaf1appbackend.repository.TeamRepository
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
-import java.util.Locale
+import java.util.*
 import kotlin.time.Clock
 
 @Component
@@ -30,7 +30,8 @@ class TeamsResultsCalculatorTask(
     private val teamRepository: TeamRepository,
     private val lineupRepository: LineupRepository,
     private val firestore: Firestore,
-    private val clock: Clock
+    private val clock: Clock,
+    private val timeZone: TimeZone
 ) {
     @Scheduled(fixedRate = 1000)
     internal suspend fun runTask() {
@@ -61,7 +62,7 @@ class TeamsResultsCalculatorTask(
 
     private suspend fun calculateTeamsResults(raceWeekendResult: RaceWeekendResult) {
         val driverPoints = raceWeekendResult.results.associate { it.driverAcronym to it.points }
-        val currentYear = clock.now().toLocalDateTime(TimeZone.currentSystemDefault()).year
+        val currentYear = clock.now().toLocalDateTime(timeZone).year
 
         var cursor: DocumentSnapshot? = null
         do {

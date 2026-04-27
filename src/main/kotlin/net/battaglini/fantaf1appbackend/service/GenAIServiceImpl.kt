@@ -10,10 +10,11 @@ import kotlin.time.Clock
 @Service
 class GenAIServiceImpl(
     private val genAIClient: GenAIClient,
-    private val clock: Clock
+    private val clock: Clock,
+    private val timeZone: TimeZone
 ) : GenAIService {
     override suspend fun generateDriverSummary(driverName: String, averageScore: Double): Flow<String> {
-        val year = clock.now().toLocalDateTime(TimeZone.currentSystemDefault()).year
+        val year = clock.now().toLocalDateTime(timeZone).year
         val instructions = listOf(
             "You are a sports journalist.",
             "You're writing a quick summary of a Formula 1 driver's $year season performance.",

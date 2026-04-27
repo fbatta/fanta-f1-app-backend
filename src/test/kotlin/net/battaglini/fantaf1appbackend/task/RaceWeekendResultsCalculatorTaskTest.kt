@@ -71,6 +71,9 @@ class RaceWeekendResultsCalculatorTaskTest {
     @MockK
     lateinit var clock: Clock
 
+    @MockK(relaxed = true)
+    lateinit var timeZone: TimeZone
+
     @InjectMockKs
     lateinit var task: RaceWeekendResultsCalculatorTask
 
