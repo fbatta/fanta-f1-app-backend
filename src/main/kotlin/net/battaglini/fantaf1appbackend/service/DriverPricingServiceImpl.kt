@@ -33,7 +33,12 @@ class DriverPricingServiceImpl(
             return
         }
 
-        LOGGER.info("Starting driver pricing recalculation for raceId={}, acronyms={}, updateAll={}", lastRaceId, acronyms, updateAll)
+        LOGGER.info(
+            "Starting driver pricing recalculation for raceId={}, acronyms={}, updateAll={}",
+            lastRaceId,
+            acronyms,
+            updateAll
+        )
 
         val activeDrivers = driverRepository.getDrivers().toList().filter { it.isActive }
         if (activeDrivers.isEmpty()) {
@@ -45,7 +50,7 @@ class DriverPricingServiceImpl(
         val allRaces = raceRepository.getRacesByYear(currentYear).toList()
             .sortedBy { it.dateStart }
 
-        val effectiveLastRaceId = lastRaceId ?: allRaces.lastOrNull()?.raceId
+        val effectiveLastRaceId = lastRaceId ?: findLatestRaceIdWithResults(allRaces)
         if (effectiveLastRaceId == null) {
             LOGGER.warn("No race found to use as anchor for pricing recalculation.")
             return
@@ -59,55 +64,97 @@ class DriverPricingServiceImpl(
 
         val lastRaces = allRaces.filter { it.dateStart <= lastRaceDateStart }
             .takeLast(pricingProperties.rollingWindowSize)
-        
+
         val results = raceWeekendResultRepository.getRaceWeekendResults(lastRaces.map { it.raceId }).toList()
         // Ensure results are in the same order as lastRaces for smoothing logic
         val sortedResults = lastRaces.mapNotNull { race -> results.find { it.raceId == race.raceId } }
 
         val currentCostsMap = driverCostRepository.getDriversCosts().toList().associateBy { it.driverId }
 
-        val newCosts = activeDrivers.map { driver ->
-            val driverAvg = calculateRollingAvg(driver.driverId, sortedResults)
-            val teammate = findTeammate(driver, activeDrivers)
-            val teammateAvg = teammate?.let { calculateRollingAvg(it.driverId, sortedResults) } ?: driverAvg
-            
-            val powerScore = (pricingProperties.driverWeight * driverAvg) + (pricingProperties.teamWeight * teammateAvg)
-            var newCostValue = mapScoreToPrice(powerScore)
-
-            // Smoothing: If composite score improved compared to the state AFTER previous race, price cannot drop.
-            // Using driverAvg as a proxy for improvement if previous results are not fully available.
-            val previousResults = sortedResults.dropLast(1)
-            if (previousResults.isNotEmpty()) {
-                val previousDriverAvg = calculateRollingAvg(driver.driverId, previousResults)
-                val previousTeammateAvg = teammate?.let { calculateRollingAvg(it.driverId, previousResults) } ?: previousDriverAvg
-                val previousPowerScore = (pricingProperties.driverWeight * previousDriverAvg) + (pricingProperties.teamWeight * previousTeammateAvg)
-
-                if (powerScore > previousPowerScore) {
-                    val previousCost = currentCostsMap[driver.driverId]?.driverCost
-                    if (previousCost != null) {
-                        newCostValue = maxOf(newCostValue, previousCost)
-                    }
-                }
+        // Selective filtering
+        val driversToUpdate = when {
+            updateAll -> activeDrivers
+            !acronyms.isNullOrEmpty() -> activeDrivers.filter { d ->
+                acronyms.any { it.equals(d.acronym, ignoreCase = true) }
             }
+            else -> {
+                LOGGER.info("No drivers specified for update and updateAll is false. Skipping.")
+                return
+            }
+        }
 
-            DriverCost(driver.driverId, newCostValue)
+        val updatedCosts = driversToUpdate.map { driver ->
+            calculateNewCost(driver, activeDrivers, sortedResults, currentCostsMap)
+        }
+
+        // Merge with current costs for deflator calculation
+        val projectedGrid = activeDrivers.map { driver ->
+            updatedCosts.find { it.driverId == driver.driverId }
+                ?: currentCostsMap[driver.driverId]
+                ?: DriverCost(driver.driverId, pricingProperties.priceFloor)
         }
 
         // Global Deflator logic
-        val gridAvg = newCosts.map { it.driverCost }.average()
-        val finalCosts = if (gridAvg > pricingProperties.maxAvgPriceThreshold) {
+        val gridAvg = projectedGrid.map { it.driverCost }.average()
+        val finalUpdatedCosts = if (gridAvg > pricingProperties.maxAvgPriceThreshold) {
             val factor = pricingProperties.targetAvgPrice / gridAvg
-            newCosts.map { it.copy(driverCost = (it.driverCost * factor).roundToLong().toDouble()) }
+            // Apply deflator ONLY to the drivers we are currently updating
+            updatedCosts.map { it.copy(driverCost = (it.driverCost * factor).roundToLong().toDouble()) }
         } else {
-            newCosts
+            updatedCosts
         }
 
         if (pricingProperties.dryRun) {
-            LOGGER.info("DRY RUN: New driver costs: {}", finalCosts)
+            LOGGER.info("DRY RUN: New driver costs: {}", finalUpdatedCosts)
         } else {
-            driverCostRepository.createOrUpdateDriversCosts(finalCosts)
-            LOGGER.info("Successfully updated driver costs for {} drivers. Grid average: {}", finalCosts.size, gridAvg)
+            driverCostRepository.createOrUpdateDriversCosts(finalUpdatedCosts)
+            LOGGER.info(
+                "Successfully updated driver costs for {} drivers. Grid average: {}",
+                finalUpdatedCosts.size,
+                gridAvg
+            )
         }
+    }
+
+    private suspend fun findLatestRaceIdWithResults(allRaces: List<net.battaglini.fantaf1appbackend.model.RaceWeekend>): String? {
+        for (race in allRaces.reversed()) {
+            if (raceWeekendResultRepository.findRaceWeekendResult(raceId = race.raceId) != null) {
+                return race.raceId
+            }
+        }
+        return null
+    }
+
+    private fun calculateNewCost(
+        driver: Driver,
+        allActiveDrivers: List<Driver>,
+        sortedResults: List<RaceWeekendResult>,
+        currentCostsMap: Map<String, DriverCost>
+    ): DriverCost {
+        val driverAvg = calculateRollingAvg(driver.driverId, sortedResults)
+        val teammate = findTeammate(driver, allActiveDrivers)
+        val teammateAvg = teammate?.let { calculateRollingAvg(it.driverId, sortedResults) } ?: driverAvg
+
+        val powerScore = (pricingProperties.driverWeight * driverAvg) + (pricingProperties.teamWeight * teammateAvg)
+        var newCostValue = mapScoreToPrice(powerScore)
+
+        // Smoothing: If composite score improved compared to the state AFTER previous race, price cannot drop.
+        val previousResults = sortedResults.dropLast(1)
+        if (previousResults.isNotEmpty()) {
+            val previousDriverAvg = calculateRollingAvg(driver.driverId, previousResults)
+            val previousTeammateAvg = teammate?.let { calculateRollingAvg(it.driverId, previousResults) } ?: previousDriverAvg
+            val previousPowerScore =
+                (pricingProperties.driverWeight * previousDriverAvg) + (pricingProperties.teamWeight * previousTeammateAvg)
+
+            if (powerScore > previousPowerScore) {
+                val previousCost = currentCostsMap[driver.driverId]?.driverCost
+                if (previousCost != null) {
+                    newCostValue = maxOf(newCostValue, previousCost)
+                }
+            }
+        }
+
+        return DriverCost(driver.driverId, newCostValue)
     }
 
     private fun calculateRollingAvg(driverId: String, results: List<RaceWeekendResult>): Double {
