@@ -13,11 +13,9 @@ import net.battaglini.fantaf1appbackend.client.OpenF1Client
 import net.battaglini.fantaf1appbackend.configuration.SeedingProperties
 import net.battaglini.fantaf1appbackend.exception.DriverNotFoundException
 import net.battaglini.fantaf1appbackend.model.Driver
-import net.battaglini.fantaf1appbackend.model.DriverCost
 import net.battaglini.fantaf1appbackend.model.DriverSummary
 import net.battaglini.fantaf1appbackend.model.RaceWeekendResult
 import net.battaglini.fantaf1appbackend.model.openf1.OpenF1DriverResponse.Companion.toDriver
-import net.battaglini.fantaf1appbackend.model.request.UpdateDriversCostsRequest
 import net.battaglini.fantaf1appbackend.repository.*
 import org.slf4j.LoggerFactory
 import org.springframework.boot.context.event.ApplicationStartedEvent
@@ -33,7 +31,6 @@ class DriverServiceImpl(
     private val openF1Client: OpenF1Client,
     private val genAIService: GenAIService,
     private val driverRepository: DriverRepository,
-    private val driverCostRepository: DriverCostRepository,
     private val driverSummaryRepository: DriverSummaryRepository,
     private val raceWeekendResultRepository: RaceWeekendResultRepository,
     private val raceRepository: RaceRepository,
@@ -64,19 +61,6 @@ class DriverServiceImpl(
         } catch (e: Exception) {
             LOGGER.error("Failed to seed drivers to Firebase", e)
         }
-    }
-
-    override suspend fun updateDriversCosts(costs: UpdateDriversCostsRequest) {
-        val drivers = driverRepository.getDrivers().toList()
-        val driversCosts = costs.driversCosts.map { cost ->
-            val driver = drivers.find { it.acronym.equals(cost.acronym, ignoreCase = true) }
-            if (driver != null) {
-                DriverCost(driver.driverId, cost.driverCost)
-            } else {
-                throw DriverNotFoundException("Driver with acronym ${cost.acronym} not found")
-            }
-        }
-        driverCostRepository.createOrUpdateDriversCosts(driversCosts)
     }
 
     override suspend fun updateDriverSummary(driver: Driver): DriverSummary? {

@@ -16,7 +16,6 @@ import net.battaglini.fantaf1appbackend.model.Driver
 import net.battaglini.fantaf1appbackend.model.RaceWeekend
 import net.battaglini.fantaf1appbackend.model.RaceWeekendResult
 import net.battaglini.fantaf1appbackend.model.openf1.OpenF1DriverResponse
-import net.battaglini.fantaf1appbackend.model.request.UpdateDriversCostsRequest
 import net.battaglini.fantaf1appbackend.repository.*
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
@@ -39,9 +38,6 @@ class DriverServiceTest {
 
     @MockK
     lateinit var driverRepository: DriverRepository
-
-    @MockK
-    lateinit var driverCostRepository: DriverCostRepository
 
     @MockK
     lateinit var driverSummaryRepository: DriverSummaryRepository
@@ -183,53 +179,6 @@ class DriverServiceTest {
         driverService.seedDrivers()
 
         coVerify(exactly = 0) { driverRepository.createOrUpdateDrivers(any()) }
-    }
-
-    @Test
-    fun `updateDriversCosts should create and update costs successfully`() = runTest {
-        val driver1 = createDriver(id = "1", acronym = "VER")
-        val driver2 = createDriver(id = "2", acronym = "HAM")
-        coEvery { driverRepository.getDrivers() } returns flowOf(driver1, driver2)
-        coEvery { driverCostRepository.createOrUpdateDriversCosts(any()) } just Runs
-
-        val request = UpdateDriversCostsRequest(
-            driversCosts = listOf(
-                UpdateDriversCostsRequest.Companion.DriverCostRequest("VER", 30.0),
-                UpdateDriversCostsRequest.Companion.DriverCostRequest(
-                    "ham",
-                    28.5
-                ) // Lowercase to test case-insensitivity
-            )
-        )
-
-        driverService.updateDriversCosts(request)
-
-        coVerify {
-            driverCostRepository.createOrUpdateDriversCosts(withArg { costs ->
-                assertEquals(2, costs.size)
-                assertTrue(costs.any { it.driverId == "1" && it.driverCost == 30.0 })
-                assertTrue(costs.any { it.driverId == "2" && it.driverCost == 28.5 })
-            })
-        }
-    }
-
-    @Test
-    fun `updateDriversCosts should throw DriverNotFoundException when a driver is not found`() = runTest {
-        val driver1 = createDriver(id = "1", acronym = "VER")
-        coEvery { driverRepository.getDrivers() } returns flowOf(driver1)
-
-        val request = UpdateDriversCostsRequest(
-            driversCosts = listOf(
-                UpdateDriversCostsRequest.Companion.DriverCostRequest("LEC", 25.0)
-            )
-        )
-
-        val exception = assertThrows<DriverNotFoundException> {
-            driverService.updateDriversCosts(request)
-        }
-
-        assertEquals("Driver with acronym LEC not found", exception.message)
-        coVerify(exactly = 0) { driverCostRepository.createOrUpdateDriversCosts(any()) }
     }
 
     @Test

@@ -4,24 +4,16 @@ import kotlinx.coroutines.flow.Flow
 import net.battaglini.fantaf1appbackend.model.Driver
 import net.battaglini.fantaf1appbackend.model.DriverSummary
 import net.battaglini.fantaf1appbackend.model.RaceWeekendResult
-import net.battaglini.fantaf1appbackend.model.request.UpdateDriversCostsRequest
 
 /**
  * Service responsible for managing Formula 1 drivers' data, including seeding,
- * cost updates, and AI-generated performance summaries.
+ * and AI-generated performance summaries.
  */
 interface DriverService {
     /**
      * Fetches current F1 drivers from external sources and seeds them into the repository.
      */
     suspend fun seedDrivers()
-
-    /**
-     * Updates the fantasy costs for a list of drivers.
-     *
-     * @param costs The request containing acronyms and new costs for drivers.
-     */
-    suspend fun updateDriversCosts(costs: UpdateDriversCostsRequest)
 
     /**
      * Generates and saves a performance summary for a specific driver.

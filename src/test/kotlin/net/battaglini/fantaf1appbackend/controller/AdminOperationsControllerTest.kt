@@ -3,9 +3,6 @@ package net.battaglini.fantaf1appbackend.controller
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.coEvery
 import io.mockk.coVerify
-import io.mockk.every
-import net.battaglini.fantaf1appbackend.exception.DriverNotFoundException
-import net.battaglini.fantaf1appbackend.model.request.UpdateDriversCostsRequest
 import net.battaglini.fantaf1appbackend.service.DriverService
 import net.battaglini.fantaf1appbackend.service.RaceWeekendService
 import org.junit.jupiter.api.Test
@@ -16,7 +13,6 @@ import org.springframework.http.MediaType
 import org.springframework.security.test.context.support.WithMockUser
 import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.csrf
 import org.springframework.test.web.reactive.server.WebTestClient
-import tools.jackson.databind.ObjectMapper
 
 @WebFluxTest(
     controllers = [AdminOperationsController::class],
@@ -34,124 +30,6 @@ class AdminOperationsControllerTest {
 
     @MockkBean
     private lateinit var raceWeekendService: RaceWeekendService
-
-    @MockkBean
-    private lateinit var objectMapper: ObjectMapper
-
-
-    @Test
-    @WithMockUser(roles = ["ADMIN"])
-    fun `updateDriversCosts should return 200 OK when request is valid`() {
-        val requestBody = """
-            {
-                "driversCosts": [
-                    {
-                        "acronym": "VER",
-                        "driverCost": 40.0
-                    }
-                ]
-            }
-        """.trimIndent()
-
-        val parsedCosts = UpdateDriversCostsRequest(
-            driversCosts = listOf(
-                UpdateDriversCostsRequest.Companion.DriverCostRequest(
-                    acronym = "VER",
-                    driverCost = 40.0
-                )
-            )
-        )
-
-        every { objectMapper.readValue(any<String>(), UpdateDriversCostsRequest::class.java) } returns parsedCosts
-        coEvery { driverService.updateDriversCosts(any()) } returns Unit
-
-        webTestClient
-            .mutateWith(csrf())
-            .post()
-            .uri("/admin/drivers/costs")
-            .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(requestBody)
-            .exchange()
-            .expectStatus().isOk
-
-        coVerify { driverService.updateDriversCosts(parsedCosts) }
-    }
-
-    @Test
-    @WithMockUser(roles = ["ADMIN"])
-    fun `updateDriversCosts should return 400 Bad Request when DriverNotFoundException is thrown`() {
-        val requestBody = """
-            {
-                "driversCosts": [
-                    {
-                        "acronym": "UNKNOWN",
-                        "driverCost": 40.0
-                    }
-                ]
-            }
-        """.trimIndent()
-
-        val parsedCosts = UpdateDriversCostsRequest(
-            driversCosts = listOf(
-                UpdateDriversCostsRequest.Companion.DriverCostRequest(
-                    acronym = "UNKNOWN",
-                    driverCost = 40.0
-                )
-            )
-        )
-
-        every { objectMapper.readValue(any<String>(), UpdateDriversCostsRequest::class.java) } returns parsedCosts
-        coEvery { driverService.updateDriversCosts(any()) } throws DriverNotFoundException("Driver not found")
-
-        webTestClient
-            .mutateWith(csrf())
-            .post()
-            .uri("/admin/drivers/costs")
-            .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(requestBody)
-            .exchange()
-            .expectStatus().isBadRequest
-
-        coVerify { driverService.updateDriversCosts(parsedCosts) }
-    }
-
-    @Test
-    @WithMockUser(roles = ["ADMIN"])
-    fun `updateDriversCosts should return 500 Internal Server Error when generic Exception is thrown`() {
-        val requestBody = """
-            {
-                "driversCosts": [
-                    {
-                        "acronym": "VER",
-                        "driverCost": 40.0
-                    }
-                ]
-            }
-        """.trimIndent()
-
-        val parsedCosts = UpdateDriversCostsRequest(
-            driversCosts = listOf(
-                UpdateDriversCostsRequest.Companion.DriverCostRequest(
-                    acronym = "VER",
-                    driverCost = 40.0
-                )
-            )
-        )
-
-        every { objectMapper.readValue(any<String>(), UpdateDriversCostsRequest::class.java) } returns parsedCosts
-        coEvery { driverService.updateDriversCosts(any()) } throws Exception("Something went wrong")
-
-        webTestClient
-            .mutateWith(csrf())
-            .post()
-            .uri("/admin/drivers/costs")
-            .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(requestBody)
-            .exchange()
-            .expectStatus().is5xxServerError
-
-        coVerify { driverService.updateDriversCosts(parsedCosts) }
-    }
 
     @Test
     @WithMockUser(roles = ["ADMIN"])
