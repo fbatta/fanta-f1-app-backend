@@ -15,6 +15,6 @@ interface RaceWeekendService {
      *
      * @param raceIds list of race IDs to generate recaps for
      * @return list of successfully processed race recaps with generated content
-     */
+      */
     suspend fun generateRaceRecap(raceIds: List<String>): List<net.battaglini.fantaf1appbackend.model.RaceWeekendRecap>
 }

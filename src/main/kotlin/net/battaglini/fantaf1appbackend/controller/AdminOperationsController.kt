@@ -63,7 +63,7 @@ class AdminOperationsController(
     @PostMapping("/race-weekends/recap")
     suspend fun generateRaceRecaps(@RequestBody request: GenerateRaceRecapRequest): GenerateRaceRecapResponse {
         try {
-            val recaps = raceWeekendService.generateRaceRecap(request.raceIds)
+           val recaps = raceWeekendService.generateRaceRecap(request.raceIds)
             val recapEntries = recaps.map {
                 GenerateRaceRecapResponse.RecapEntry(
                     raceId = it.raceId,

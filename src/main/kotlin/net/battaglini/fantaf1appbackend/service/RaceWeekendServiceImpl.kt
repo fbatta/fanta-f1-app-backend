@@ -62,7 +62,7 @@ class RaceWeekendServiceImpl(
         }
     }
 
-    override suspend fun generateRaceRecap(raceIds: List<String>): List<RaceWeekendRecap> {
+   override suspend fun generateRaceRecap(raceIds: List<String>): List<RaceWeekendRecap> {
         val processedRecaps = mutableListOf<RaceWeekendRecap>()
 
         for (raceId in raceIds) {
@@ -79,7 +79,7 @@ class RaceWeekendServiceImpl(
                 )
 
                 raceWeekendRecapRepository.saveRaceWeekendRecap(recap)
-                processedRecaps.add(recap)
+               processedRecaps.add(recap)
 
                 LOGGER.info("Generated race recap for $raceId ($race.raceName)")
             } catch (e: Exception) {
@@ -87,7 +87,7 @@ class RaceWeekendServiceImpl(
             }
         }
 
-        return processedRecaps
+       return processedRecaps
     }
 
     private fun calculateRaceId(meetingKey: Int, year: Int): String {

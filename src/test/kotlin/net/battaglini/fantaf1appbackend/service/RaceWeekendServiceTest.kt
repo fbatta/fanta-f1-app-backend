@@ -264,7 +264,7 @@ class RaceWeekendServiceTest {
         val result = raceWeekendService.generateRaceRecap(listOf("race-1"))
 
         assertEquals(1, result.size)
-        assertEquals("race-1", result[0].raceId)
+      assertEquals("race-1", result[0].raceId)
         assertEquals("Monaco Grand Prix", result[0].raceName)
         assertEquals(2, result[0].recapParagraphs.size)
         coVerify { genAIService.generateRaceRecap("Monaco Grand Prix") }
@@ -289,7 +289,7 @@ class RaceWeekendServiceTest {
         val result = raceWeekendService.generateRaceRecap(listOf("race-1", "race-2"))
 
         assertEquals(2, result.size)
-        assertTrue(result.any { it.raceId == "race-1" })
+      assertTrue(result.any { it.raceId == "race-1" })
         assertTrue(result.any { it.raceId == "race-2" })
         coVerify { genAIService.generateRaceRecap("Monaco Grand Prix") }
         coVerify { genAIService.generateRaceRecap("British Grand Prix") }
@@ -318,7 +318,7 @@ class RaceWeekendServiceTest {
         val result = raceWeekendService.generateRaceRecap(listOf("race-1", "race-2"))
 
         assertEquals(1, result.size)
-        assertEquals("race-2", result[0].raceId)
+      assertEquals("race-2", result[0].raceId)
     }
 
     @Test

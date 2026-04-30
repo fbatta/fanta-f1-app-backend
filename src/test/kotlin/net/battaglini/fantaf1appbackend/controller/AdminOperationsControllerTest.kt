@@ -147,7 +147,7 @@ class AdminOperationsControllerTest {
         val request = net.battaglini.fantaf1appbackend.model.request.GenerateRaceRecapRequest(
             raceIds = listOf("race-1", "race-2")
         )
-        val mockRecaps = listOf(
+      val mockRecaps = listOf(
             net.battaglini.fantaf1appbackend.model.RaceWeekendRecap("race-1", "Monaco Grand Prix", listOf("Para 1", "Para 2")),
             net.battaglini.fantaf1appbackend.model.RaceWeekendRecap("race-2", "British Grand Prix", listOf("Para A"))
         )
@@ -196,7 +196,7 @@ class AdminOperationsControllerTest {
             .expectStatus().is5xxServerError
     }
 
-   @Test
+  @Test
     @WithMockUser(roles = ["ADMIN"])
     fun `generateRaceRecaps should return empty recapIds and recaps when no races processed`() {
         val request = net.battaglini.fantaf1appbackend.model.request.GenerateRaceRecapRequest(
