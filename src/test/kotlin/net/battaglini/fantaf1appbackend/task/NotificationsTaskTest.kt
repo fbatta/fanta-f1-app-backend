@@ -44,8 +44,7 @@ class NotificationsTaskTest {
             createdAt = Clock.System.now(),
             updatedAt = Clock.System.now(),
             version = 1,
-            results = emptyList(),
-            summaryParagraphs = null
+            results = emptyList()
         )
     }
 

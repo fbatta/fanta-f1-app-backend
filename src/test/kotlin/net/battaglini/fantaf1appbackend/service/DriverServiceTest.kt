@@ -127,8 +127,7 @@ class DriverServiceTest {
         createdAt = Clock.System.now(),
         updatedAt = Clock.System.now(),
         version = 1,
-        results = listOf(RaceWeekendResult.Companion.Result(driverId, 1, "VER", points)),
-        summaryParagraphs = null
+        results = listOf(RaceWeekendResult.Companion.Result(driverId, 1, "VER", points))
     )
 
     @Test

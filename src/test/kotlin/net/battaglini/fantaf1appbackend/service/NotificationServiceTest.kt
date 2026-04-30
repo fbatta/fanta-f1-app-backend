@@ -63,8 +63,7 @@ class NotificationServiceTest {
         createdAt = Clock.System.now(),
         updatedAt = Clock.System.now(),
         version = 1,
-        results = emptyList(),
-        summaryParagraphs = null
+        results = emptyList()
     )
 
     private fun createRaceWeekend() = net.battaglini.fantaf1appbackend.model.RaceWeekend(

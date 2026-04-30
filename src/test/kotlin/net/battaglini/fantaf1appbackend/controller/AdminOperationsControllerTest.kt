@@ -140,4 +140,80 @@ class AdminOperationsControllerTest {
             .exchange()
             .expectStatus().is5xxServerError
     }
+
+    @Test
+    @WithMockUser(roles = ["ADMIN"])
+    fun `generateRaceRecaps should return 200 OK when successful`() {
+        val request = net.battaglini.fantaf1appbackend.model.request.GenerateRaceRecapRequest(
+            raceIds = listOf("race-1", "race-2")
+        )
+        val mockRecaps = listOf(
+            net.battaglini.fantaf1appbackend.model.RaceWeekendRecap("race-1", "Monaco Grand Prix", listOf("Para 1", "Para 2")),
+            net.battaglini.fantaf1appbackend.model.RaceWeekendRecap("race-2", "British Grand Prix", listOf("Para A"))
+        )
+        coEvery { raceWeekendService.generateRaceRecap(any()) } returns mockRecaps
+
+        webTestClient
+            .mutateWith(csrf())
+            .post()
+            .uri("/admin/race-weekends/recap")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(request)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody()
+            .jsonPath("$.recapIds").isArray
+            .jsonPath("$.recapIds.length()").isEqualTo(2)
+            .jsonPath("$.recapIds[0]").isEqualTo("race-1")
+            .jsonPath("$.recapIds[1]").isEqualTo("race-2")
+            .jsonPath("$.recaps").isArray
+            .jsonPath("$.recaps.length()").isEqualTo(2)
+            .jsonPath("$.recaps[0].raceId").isEqualTo("race-1")
+            .jsonPath("$.recaps[0].raceName").isEqualTo("Monaco Grand Prix")
+            .jsonPath("$.recaps[0].recapParagraphs").isArray
+            .jsonPath("$.recaps[0].recapParagraphs.length()").isEqualTo(2)
+            .jsonPath("$.recaps[1].raceId").isEqualTo("race-2")
+            .jsonPath("$.recaps[1].raceName").isEqualTo("British Grand Prix")
+
+        coVerify { raceWeekendService.generateRaceRecap(listOf("race-1", "race-2")) }
+    }
+
+    @Test
+    @WithMockUser(roles = ["ADMIN"])
+    fun `generateRaceRecaps should return 500 when service fails`() {
+        val request = net.battaglini.fantaf1appbackend.model.request.GenerateRaceRecapRequest(
+            raceIds = listOf("race-1")
+        )
+        coEvery { raceWeekendService.generateRaceRecap(any()) } throws RuntimeException("GenAI error")
+
+        webTestClient
+            .mutateWith(csrf())
+            .post()
+            .uri("/admin/race-weekends/recap")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(request)
+            .exchange()
+            .expectStatus().is5xxServerError
+    }
+
+   @Test
+    @WithMockUser(roles = ["ADMIN"])
+    fun `generateRaceRecaps should return empty recapIds and recaps when no races processed`() {
+        val request = net.battaglini.fantaf1appbackend.model.request.GenerateRaceRecapRequest(
+            raceIds = listOf("nonexistent")
+        )
+        coEvery { raceWeekendService.generateRaceRecap(any()) } returns emptyList()
+
+        webTestClient
+            .mutateWith(csrf())
+            .post()
+            .uri("/admin/race-weekends/recap")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(request)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody()
+            .jsonPath("$.recapIds").isEmpty
+            .jsonPath("$.recaps").isEmpty
+    }
 }

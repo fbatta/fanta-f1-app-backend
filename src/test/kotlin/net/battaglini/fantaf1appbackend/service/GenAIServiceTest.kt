@@ -49,7 +49,7 @@ class GenAIServiceTest {
             "Keep it brief and on point, maximum 40 words, excluding articles and conjunctions.",
             "Add a paragraph talking about how the formula 1 team for which they race is performing in the 2025 season.",
             "Add a sentence mentioning that the driver's average score in the IDGAF-1 app is 25.0.",
-            "Use markdown formatting."
+            "Use markdown formatting. The sentence about the idgaf-1 score should be bold"
         )
 
         coEvery { genAIClient.generateContentNoThinking(any(), any()) } returns flowOf("Generated summary")
@@ -113,6 +113,7 @@ class GenAIServiceTest {
 
     @Test
     fun `generateRaceRecap should construct prompt with race name`() = runTest {
+        every { clock.now() } returns Instant.parse("2025-06-01T12:00:00Z")
         coEvery { genAIClient.generateContentNoThinking(any(), any()) } returns flowOf("Race recap content")
 
         genAIService.generateRaceRecap("Monaco Grand Prix").toList()
@@ -120,19 +121,23 @@ class GenAIServiceTest {
         coVerify {
             genAIClient.generateContentNoThinking(withArg { prompt ->
                 assertTrue(prompt.contains("Monaco Grand Prix"), "Prompt should contain race name")
-                assertEquals("Give me a recap of the Monaco Grand Prix", prompt)
+                assertEquals("Give me a recap of the 2025 Monaco Grand Prix", prompt)
             }, any())
         }
     }
 
     @Test
     fun `generateRaceRecap should include correct instructions list`() = runTest {
+        every { clock.now() } returns Instant.parse("2025-06-01T12:00:00Z")
         val expectedInstructions = listOf(
             "You are a sports journalist.",
             "You're writing a quick summary of a Formula 1 Grand Prix.",
             "Consider the entire weekend (free practice, qualifying, etc.), not just the actual race.",
+            "If the race weekend included Sprint qualifying and Sprint race, include those int the recap as well",
+            "Use the google search tool to find the latest information about the race.",
             "Mention the weather conditions.",
-            "Mention which teams and drivers did best and which did worst."
+            "Mention which teams and drivers did best and which did worst.",
+            "Use markdown formatting."
         )
 
         coEvery { genAIClient.generateContentNoThinking(any(), any()) } returns flowOf("Recap")
@@ -163,6 +168,7 @@ class GenAIServiceTest {
 
     @Test
     fun `generateRaceRecap should delegate to client even with empty race name`() = runTest {
+        every { clock.now() } returns Instant.parse("2025-06-01T12:00:00Z")
         // No validation on race name — empty string should still delegate
         coEvery { genAIClient.generateContentNoThinking(any(), any()) } returns flowOf("Empty recap")
 
@@ -170,6 +176,6 @@ class GenAIServiceTest {
 
         assertEquals(1, result.size)
         assertEquals("Empty recap", result[0])
-        coVerify { genAIClient.generateContentNoThinking("Give me a recap of the ", any<List<String>>()) }
+        coVerify { genAIClient.generateContentNoThinking("Give me a recap of the 2025 ", any<List<String>>()) }
     }
 }

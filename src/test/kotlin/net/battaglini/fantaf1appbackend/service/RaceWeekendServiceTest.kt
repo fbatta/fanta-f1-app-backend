@@ -16,6 +16,7 @@ import net.battaglini.fantaf1appbackend.model.RaceWeekend
 import net.battaglini.fantaf1appbackend.model.openf1.OpenF1MeetingResponse
 import net.battaglini.fantaf1appbackend.model.openf1.OpenF1SessionResponse
 import net.battaglini.fantaf1appbackend.repository.RaceRepository
+import net.battaglini.fantaf1appbackend.repository.RaceWeekendRecapRepository
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -36,6 +37,12 @@ class RaceWeekendServiceTest {
 
     @MockK
     lateinit var seedingProperties: SeedingProperties
+
+    @MockK
+    lateinit var genAIService: GenAIService
+
+    @MockK
+    lateinit var raceWeekendRecapRepository: RaceWeekendRecapRepository
 
     @MockK
     lateinit var clock: Clock
@@ -82,6 +89,25 @@ class RaceWeekendServiceTest {
         dateEnd = kotlinx.datetime.LocalDateTime(2025, 3, 15, 13, 0, 0),
         gmtOffset = kotlinx.datetime.UtcOffset(4),
         year = 2025
+    )
+
+    private fun createRaceWeekend(
+        raceId: String = "race-1",
+        raceName: String = "Monaco Grand Prix",
+        openF1MeetingKey: Int = 100
+    ) = RaceWeekend(
+        raceId = raceId,
+        openF1MeetingKey = openF1MeetingKey,
+        raceName = raceName,
+        dateStart = Instant.parse("2025-05-24T12:00:00Z"),
+        dateEnd = Instant.parse("2025-05-25T16:00:00Z"),
+        sessions = emptyList(),
+        circuitImage = "circuit.png",
+        countryName = "Monaco",
+        countryFlag = "🇲🇨",
+        circuitType = "street",
+        dateLineupOpen = Instant.parse("2025-05-23T12:00:00Z"),
+        dateLineupClose = Instant.parse("2025-05-24T10:00:00Z")
     )
 
     @Test
@@ -222,5 +248,85 @@ class RaceWeekendServiceTest {
         raceWeekendService.seedRaceWeekends()
 
         coVerify { raceRepository.createOrUpdateRaces(any()) }
+    }
+
+    @Test
+    fun `generateRaceRecap should generate and save recap for single race`() = runTest {
+        val race = createRaceWeekend(raceId = "race-1", raceName = "Monaco Grand Prix", openF1MeetingKey = 100)
+
+        coEvery { raceRepository.getRaceById("race-1") } returns flowOf(race)
+        coEvery { genAIService.generateRaceRecap("Monaco Grand Prix") } returns flowOf(
+            "Paragraph 1",
+            "Paragraph 2"
+        )
+        coEvery { raceWeekendRecapRepository.saveRaceWeekendRecap(any()) } just Runs
+
+        val result = raceWeekendService.generateRaceRecap(listOf("race-1"))
+
+        assertEquals(1, result.size)
+        assertEquals("race-1", result[0].raceId)
+        assertEquals("Monaco Grand Prix", result[0].raceName)
+        assertEquals(2, result[0].recapParagraphs.size)
+        coVerify { genAIService.generateRaceRecap("Monaco Grand Prix") }
+        coVerify { raceWeekendRecapRepository.saveRaceWeekendRecap(withArg { recap ->
+            assertEquals("race-1", recap.raceId)
+            assertEquals("Monaco Grand Prix", recap.raceName)
+            assertEquals(2, recap.recapParagraphs.size)
+        }) }
+    }
+
+    @Test
+    fun `generateRaceRecap should process multiple races`() = runTest {
+        val race1 = createRaceWeekend(raceId = "race-1", raceName = "Monaco Grand Prix", openF1MeetingKey = 100)
+        val race2 = createRaceWeekend(raceId = "race-2", raceName = "British Grand Prix", openF1MeetingKey = 200)
+
+        coEvery { raceRepository.getRaceById("race-1") } returns flowOf(race1)
+        coEvery { raceRepository.getRaceById("race-2") } returns flowOf(race2)
+        coEvery { genAIService.generateRaceRecap("Monaco Grand Prix") } returns flowOf("Recap Monaco")
+        coEvery { genAIService.generateRaceRecap("British Grand Prix") } returns flowOf("Recap Britain")
+        coEvery { raceWeekendRecapRepository.saveRaceWeekendRecap(any()) } just Runs
+
+        val result = raceWeekendService.generateRaceRecap(listOf("race-1", "race-2"))
+
+        assertEquals(2, result.size)
+        assertTrue(result.any { it.raceId == "race-1" })
+        assertTrue(result.any { it.raceId == "race-2" })
+        coVerify { genAIService.generateRaceRecap("Monaco Grand Prix") }
+        coVerify { genAIService.generateRaceRecap("British Grand Prix") }
+    }
+
+    @Test
+    fun `generateRaceRecap should skip races that are not found`() = runTest {
+        coEvery { raceRepository.getRaceById("nonexistent") } returns emptyFlow()
+        coEvery { raceWeekendRecapRepository.saveRaceWeekendRecap(any()) } just Runs
+
+        val result = raceWeekendService.generateRaceRecap(listOf("nonexistent"))
+
+        assertTrue(result.isEmpty())
+        coVerify(exactly = 0) { genAIService.generateRaceRecap(any()) }
+    }
+
+    @Test
+    fun `generateRaceRecap should continue processing other races when one fails`() = runTest {
+        val race = createRaceWeekend(raceId = "race-2", raceName = "British Grand Prix", openF1MeetingKey = 200)
+
+        coEvery { raceRepository.getRaceById("race-1") } returns emptyFlow()
+        coEvery { raceRepository.getRaceById("race-2") } returns flowOf(race)
+        coEvery { genAIService.generateRaceRecap("British Grand Prix") } returns flowOf("Recap Britain")
+        coEvery { raceWeekendRecapRepository.saveRaceWeekendRecap(any()) } just Runs
+
+        val result = raceWeekendService.generateRaceRecap(listOf("race-1", "race-2"))
+
+        assertEquals(1, result.size)
+        assertEquals("race-2", result[0].raceId)
+    }
+
+    @Test
+    fun `generateRaceRecap should return empty list when no races provided`() = runTest {
+        val result = raceWeekendService.generateRaceRecap(emptyList())
+
+        assertTrue(result.isEmpty())
+        coVerify(exactly = 0) { genAIService.generateRaceRecap(any()) }
+        coVerify(exactly = 0) { raceWeekendRecapRepository.saveRaceWeekendRecap(any()) }
     }
 }

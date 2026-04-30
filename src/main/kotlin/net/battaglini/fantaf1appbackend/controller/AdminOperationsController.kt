@@ -1,9 +1,11 @@
 package net.battaglini.fantaf1appbackend.controller
 
+import net.battaglini.fantaf1appbackend.model.request.GenerateRaceRecapRequest
 import net.battaglini.fantaf1appbackend.model.request.UpdateDriversPricesRequest
 import net.battaglini.fantaf1appbackend.model.request.UpdateDriversSummariesRequest
 import net.battaglini.fantaf1appbackend.model.response.DriverPriceUpdateResponse
 import net.battaglini.fantaf1appbackend.model.response.DriverSummariesResponse
+import net.battaglini.fantaf1appbackend.model.response.GenerateRaceRecapResponse
 import net.battaglini.fantaf1appbackend.service.DriverPricingService
 import net.battaglini.fantaf1appbackend.service.DriverService
 import net.battaglini.fantaf1appbackend.service.RaceWeekendService
@@ -54,6 +56,27 @@ class AdminOperationsController(
             return DriverPriceUpdateResponse(updates)
         } catch (e: Exception) {
             LOGGER.error("Failed to manually update driver prices", e)
+            throw RuntimeException(e.message)
+        }
+    }
+
+    @PostMapping("/race-weekends/recap")
+    suspend fun generateRaceRecaps(@RequestBody request: GenerateRaceRecapRequest): GenerateRaceRecapResponse {
+        try {
+            val recaps = raceWeekendService.generateRaceRecap(request.raceIds)
+            val recapEntries = recaps.map {
+                GenerateRaceRecapResponse.RecapEntry(
+                    raceId = it.raceId,
+                    raceName = it.raceName,
+                    recapParagraphs = it.recapParagraphs
+                )
+            }
+            return GenerateRaceRecapResponse(
+                recapIds = recaps.map { it.raceId },
+                recaps = recapEntries
+            )
+        } catch (e: Exception) {
+            LOGGER.error("Failed to generate race recaps", e)
             throw RuntimeException(e.message)
         }
     }

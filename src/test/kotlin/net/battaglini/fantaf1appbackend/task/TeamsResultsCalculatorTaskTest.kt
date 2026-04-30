@@ -73,8 +73,7 @@ class TeamsResultsCalculatorTaskTest {
         results = listOf(
             RaceWeekendResult.Companion.Result("id-VER", 1, "VER", 20.0),
             RaceWeekendResult.Companion.Result("id-HAM", 44, "HAM", 15.0)
-        ),
-        summaryParagraphs = null
+        )
     )
 
     private fun createTeam(id: String) = Team(
