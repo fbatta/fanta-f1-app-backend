@@ -63,8 +63,18 @@ class AdminOperationsController(
     @PostMapping("/race-weekends/recap")
     suspend fun generateRaceRecaps(@RequestBody request: GenerateRaceRecapRequest): GenerateRaceRecapResponse {
         try {
-            val recapIds = raceWeekendService.generateRaceRecap(request.raceIds)
-            return GenerateRaceRecapResponse(recapIds)
+            val recaps = raceWeekendService.generateRaceRecap(request.raceIds)
+            val recapEntries = recaps.map {
+                GenerateRaceRecapResponse.RecapEntry(
+                    raceId = it.raceId,
+                    raceName = it.raceName,
+                    recapParagraphs = it.recapParagraphs
+                )
+            }
+            return GenerateRaceRecapResponse(
+                recapIds = recaps.map { it.raceId },
+                recaps = recapEntries
+            )
         } catch (e: Exception) {
             LOGGER.error("Failed to generate race recaps", e)
             throw RuntimeException(e.message)

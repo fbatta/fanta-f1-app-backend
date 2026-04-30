@@ -14,7 +14,7 @@ interface RaceWeekendService {
      * Each recap is generated via GenAI and saved to Firestore.
      *
      * @param raceIds list of race IDs to generate recaps for
-     * @return list of race IDs that were successfully processed
+     * @return list of successfully processed race recaps with generated content
      */
-    suspend fun generateRaceRecap(raceIds: List<String>): List<String>
+    suspend fun generateRaceRecap(raceIds: List<String>): List<net.battaglini.fantaf1appbackend.model.RaceWeekendRecap>
 }
