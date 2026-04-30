@@ -61,7 +61,11 @@ service cloud.firestore {
     // Read-only for the client apps. Only admins (handled via backend scripts) can write.
     match /drivers/{driverId} {
       allow read: if isSignedIn();
-      allow write: if false; 
+      allow write: if false;
+    }
+    match /driver_summaries/{driverId} {
+      allow read: if isSignedIn();
+      allow write: if false;
     }
     
     // 4. RACES & 4a. DRIVER SCORES
