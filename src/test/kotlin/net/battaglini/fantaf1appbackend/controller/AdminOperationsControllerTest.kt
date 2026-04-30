@@ -140,4 +140,67 @@ class AdminOperationsControllerTest {
             .exchange()
             .expectStatus().is5xxServerError
     }
+
+    @Test
+    @WithMockUser(roles = ["ADMIN"])
+    fun `generateRaceRecaps should return 200 OK when successful`() {
+        val request = net.battaglini.fantaf1appbackend.model.request.GenerateRaceRecapRequest(
+            raceIds = listOf("race-1", "race-2")
+        )
+        coEvery { raceWeekendService.generateRaceRecap(any()) } returns listOf("race-1", "race-2")
+
+        webTestClient
+            .mutateWith(csrf())
+            .post()
+            .uri("/admin/race-weekends/recap")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(request)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody()
+            .jsonPath("$.recapIds").isArray
+            .jsonPath("$.recapIds.length()").isEqualTo(2)
+            .jsonPath("$.recapIds[0]").isEqualTo("race-1")
+            .jsonPath("$.recapIds[1]").isEqualTo("race-2")
+
+        coVerify { raceWeekendService.generateRaceRecap(listOf("race-1", "race-2")) }
+    }
+
+    @Test
+    @WithMockUser(roles = ["ADMIN"])
+    fun `generateRaceRecaps should return 500 when service fails`() {
+        val request = net.battaglini.fantaf1appbackend.model.request.GenerateRaceRecapRequest(
+            raceIds = listOf("race-1")
+        )
+        coEvery { raceWeekendService.generateRaceRecap(any()) } throws RuntimeException("GenAI error")
+
+        webTestClient
+            .mutateWith(csrf())
+            .post()
+            .uri("/admin/race-weekends/recap")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(request)
+            .exchange()
+            .expectStatus().is5xxServerError
+    }
+
+    @Test
+    @WithMockUser(roles = ["ADMIN"])
+    fun `generateRaceRecaps should return empty recapIds when no races processed`() {
+        val request = net.battaglini.fantaf1appbackend.model.request.GenerateRaceRecapRequest(
+            raceIds = listOf("nonexistent")
+        )
+        coEvery { raceWeekendService.generateRaceRecap(any()) } returns emptyList()
+
+        webTestClient
+            .mutateWith(csrf())
+            .post()
+            .uri("/admin/race-weekends/recap")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(request)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody()
+            .jsonPath("$.recapIds").isEmpty
+    }
 }

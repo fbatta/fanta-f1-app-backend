@@ -57,15 +57,15 @@ class DriverPricingServiceTest {
         val res1 = RaceWeekendResult("r1", "GP1", 101, kotlin.time.Clock.System.now(), kotlin.time.Clock.System.now(), 1, listOf(
             RaceWeekendResult.Companion.Result("d1", 1, "VER", 10.0),
             RaceWeekendResult.Companion.Result("d2", 2, "PER", 5.0)
-        ), null)
+        ))
         val res2 = RaceWeekendResult("r2", "GP2", 102, kotlin.time.Clock.System.now(), kotlin.time.Clock.System.now(), 1, listOf(
             RaceWeekendResult.Companion.Result("d1", 1, "VER", 15.0),
             RaceWeekendResult.Companion.Result("d2", 2, "PER", 5.0)
-        ), null)
+        ))
         val res3 = RaceWeekendResult("r3", "GP3", 103, kotlin.time.Clock.System.now(), kotlin.time.Clock.System.now(), 1, listOf(
             RaceWeekendResult.Companion.Result("d1", 1, "VER", 20.0),
             RaceWeekendResult.Companion.Result("d2", 2, "PER", 10.0)
-        ), null)
+        ))
 
         coEvery { driverRepository.getDrivers() } returns activeDrivers.asFlow()
         coEvery { raceRepository.getRacesByYear(year) } returns allRaces.asFlow()
@@ -110,7 +110,7 @@ class DriverPricingServiceTest {
 
         val res1 = RaceWeekendResult("r1", "GP1", 101, kotlin.time.Clock.System.now(), kotlin.time.Clock.System.now(), 1, listOf(
             RaceWeekendResult.Companion.Result("d1", 1, "VER", 10.0)
-        ), null)
+        ))
 
         coEvery { driverRepository.getDrivers() } returns activeDrivers.asFlow()
         coEvery { raceRepository.getRacesByYear(year) } returns allRaces.asFlow()
@@ -145,7 +145,7 @@ class DriverPricingServiceTest {
         val res1 = RaceWeekendResult("r1", "GP1", 101, kotlin.time.Clock.System.now(), kotlin.time.Clock.System.now(), 1, listOf(
             RaceWeekendResult.Companion.Result("d1", 1, "VER", 20.0),
             RaceWeekendResult.Companion.Result("d2", 2, "PER", 20.0)
-        ), null)
+        ))
 
         coEvery { driverRepository.getDrivers() } returns activeDrivers.asFlow()
         coEvery { raceRepository.getRacesByYear(year) } returns allRaces.asFlow()
@@ -179,13 +179,13 @@ class DriverPricingServiceTest {
 
         val res1 = RaceWeekendResult("r1", "GP1", 101, kotlin.time.Clock.System.now(), kotlin.time.Clock.System.now(), 1, listOf(
             RaceWeekendResult.Companion.Result("d1", 1, "VER", 20.0)
-        ), null)
+        ))
         val res2 = RaceWeekendResult("r2", "GP2", 102, kotlin.time.Clock.System.now(), kotlin.time.Clock.System.now(), 1, listOf(
             RaceWeekendResult.Companion.Result("d1", 1, "VER", 10.0)
-        ), null)
+        ))
         val res3 = RaceWeekendResult("r3", "GP3", 103, kotlin.time.Clock.System.now(), kotlin.time.Clock.System.now(), 1, listOf(
             RaceWeekendResult.Companion.Result("d1", 1, "VER", 18.0)
-        ), null)
+        ))
 
         val previousCost = 75.0
         coEvery { driverRepository.getDrivers() } returns activeDrivers.asFlow()
@@ -219,7 +219,7 @@ class DriverPricingServiceTest {
         val res1 = RaceWeekendResult("r1", "GP1", 101, kotlin.time.Clock.System.now(), kotlin.time.Clock.System.now(), 1, listOf(
             RaceWeekendResult.Companion.Result("d1", 1, "VER", 20.0),
             RaceWeekendResult.Companion.Result("d2", 2, "HAM", 20.0)
-        ), null)
+        ))
 
         val localProperties = pricingProperties.copy(maxAvgPriceThreshold = 52.0)
         val localService = DriverPricingServiceImpl(
@@ -262,7 +262,7 @@ class DriverPricingServiceTest {
         val res1 = RaceWeekendResult("r1", "GP1", 101, kotlin.time.Clock.System.now(), kotlin.time.Clock.System.now(), 1, listOf(
             RaceWeekendResult.Companion.Result("d1", 1, "VER", 20.0),
             RaceWeekendResult.Companion.Result("d2", 2, "HAM", 0.0)
-        ), null)
+        ))
 
         // HAM already has high price, which pushes grid avg up
         val currentCosts = listOf(

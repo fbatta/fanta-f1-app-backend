@@ -26,7 +26,7 @@ class GenAIServiceImpl(
                     averageScore
                 )
             }.",
-            "Use markdown formatting."
+            "Use markdown formatting. The sentence about the idgaf-1 score should be bold"
         )
 
         return genAIClient.generateContentNoThinking(
@@ -36,14 +36,18 @@ class GenAIServiceImpl(
     }
 
     override suspend fun generateRaceRecap(raceName: String): Flow<String> {
+        val year = clock.now().toLocalDateTime(timeZone).year
         val instructions = listOf(
             "You are a sports journalist.",
             "You're writing a quick summary of a Formula 1 Grand Prix.",
             "Consider the entire weekend (free practice, qualifying, etc.), not just the actual race.",
+            "If the race weekend included Sprint qualifying and Sprint race, include those int the recap as well",
+            "Use the google search tool to find the latest information about the race.",
             "Mention the weather conditions.",
-            "Mention which teams and drivers did best and which did worst."
+            "Mention which teams and drivers did best and which did worst.",
+            "Use markdown formatting."
         )
 
-        return genAIClient.generateContentNoThinking("Give me a recap of the $raceName", instructions)
+        return genAIClient.generateContentNoThinking("Give me a recap of the $year $raceName", instructions)
     }
 }

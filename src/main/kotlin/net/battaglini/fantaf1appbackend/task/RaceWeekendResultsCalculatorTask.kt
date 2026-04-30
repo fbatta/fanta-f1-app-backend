@@ -188,8 +188,7 @@ class RaceWeekendResultsCalculatorTask(
             createdAt = clock.now(),
             updatedAt = clock.now(),
             version = 1,
-            results = results,
-            summaryParagraphs = null
+            results = results
         )
     }
 

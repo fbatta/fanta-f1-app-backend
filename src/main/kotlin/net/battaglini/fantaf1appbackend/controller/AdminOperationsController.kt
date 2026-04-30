@@ -1,9 +1,11 @@
 package net.battaglini.fantaf1appbackend.controller
 
+import net.battaglini.fantaf1appbackend.model.request.GenerateRaceRecapRequest
 import net.battaglini.fantaf1appbackend.model.request.UpdateDriversPricesRequest
 import net.battaglini.fantaf1appbackend.model.request.UpdateDriversSummariesRequest
 import net.battaglini.fantaf1appbackend.model.response.DriverPriceUpdateResponse
 import net.battaglini.fantaf1appbackend.model.response.DriverSummariesResponse
+import net.battaglini.fantaf1appbackend.model.response.GenerateRaceRecapResponse
 import net.battaglini.fantaf1appbackend.service.DriverPricingService
 import net.battaglini.fantaf1appbackend.service.DriverService
 import net.battaglini.fantaf1appbackend.service.RaceWeekendService
@@ -54,6 +56,17 @@ class AdminOperationsController(
             return DriverPriceUpdateResponse(updates)
         } catch (e: Exception) {
             LOGGER.error("Failed to manually update driver prices", e)
+            throw RuntimeException(e.message)
+        }
+    }
+
+    @PostMapping("/race-weekends/recap")
+    suspend fun generateRaceRecaps(@RequestBody request: GenerateRaceRecapRequest): GenerateRaceRecapResponse {
+        try {
+            val recapIds = raceWeekendService.generateRaceRecap(request.raceIds)
+            return GenerateRaceRecapResponse(recapIds)
+        } catch (e: Exception) {
+            LOGGER.error("Failed to generate race recaps", e)
             throw RuntimeException(e.message)
         }
     }

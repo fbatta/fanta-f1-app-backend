@@ -4,6 +4,8 @@ import com.google.cloud.firestore.Firestore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
@@ -58,6 +60,19 @@ class RaceRepository(
                 .whereLessThanOrEqualTo(RaceWeekend::dateEnd.name, endOfYearTimestamp)
                 .get().get()
         }.map { objectMapper.convertValue(it.data, RaceWeekend::class.java) }.asFlow()
+    }
+
+    suspend fun getRaceById(raceId: String): Flow<RaceWeekend> {
+        return withContext(Dispatchers.IO) {
+            val document = firestore.collection(COLLECTION_PATH).document(raceId).get().get()
+            if (document.exists()) {
+                flow {
+                    emit(objectMapper.convertValue(document.data, RaceWeekend::class.java))
+                }
+            } else {
+                emptyFlow()
+            }
+        }
     }
 
     companion object {
