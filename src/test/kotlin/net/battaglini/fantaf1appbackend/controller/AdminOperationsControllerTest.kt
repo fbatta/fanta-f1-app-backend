@@ -230,15 +230,15 @@ class AdminOperationsControllerTest {
             raceId = "race-1",
             openF1MeetingKey = 100,
             raceName = "Monaco Grand Prix",
-            dateStart = kotlinx.datetime.Instant.fromEpochMilliseconds(0),
-            dateEnd = kotlinx.datetime.Instant.fromEpochMilliseconds(0),
+            dateStart = kotlin.time.Instant.fromEpochMilliseconds(0),
+            dateEnd = kotlin.time.Instant.fromEpochMilliseconds(0),
             sessions = emptyList(),
             circuitImage = "circuit.png",
             countryName = "Monaco",
             countryFlag = "🇲🇨",
             circuitType = "street",
-            dateLineupOpen = kotlinx.datetime.Instant.fromEpochMilliseconds(0),
-            dateLineupClose = kotlinx.datetime.Instant.fromEpochMilliseconds(0)
+            dateLineupOpen = kotlin.time.Instant.fromEpochMilliseconds(0),
+            dateLineupClose = kotlin.time.Instant.fromEpochMilliseconds(0)
         )
         val team = net.battaglini.fantaf1appbackend.model.Team(
             teamId = "team1",
@@ -246,8 +246,8 @@ class AdminOperationsControllerTest {
             teamAvatarUrl = null,
             ownerId = "owner1",
             lobbyId = "lobby1",
-            createdAt = kotlinx.datetime.Instant.fromEpochMilliseconds(0),
-            updatedAt = kotlinx.datetime.Instant.fromEpochMilliseconds(0),
+            createdAt = kotlin.time.Instant.fromEpochMilliseconds(0),
+            updatedAt = kotlin.time.Instant.fromEpochMilliseconds(0),
             points = mutableMapOf(2025 to 100.0)
         )
         val lineup = net.battaglini.fantaf1appbackend.model.Lineup(
@@ -258,8 +258,8 @@ class AdminOperationsControllerTest {
             drivers = listOf(
                 net.battaglini.fantaf1appbackend.model.Lineup.Companion.LineupDriver("d1", 1, "VER", 10.0)
             ),
-            createdAt = kotlinx.datetime.Instant.fromEpochMilliseconds(0),
-            updatedAt = kotlinx.datetime.Instant.fromEpochMilliseconds(0),
+            createdAt = kotlin.time.Instant.fromEpochMilliseconds(0),
+            updatedAt = kotlin.time.Instant.fromEpochMilliseconds(0),
             version = 1,
             score = 25.0
         )
@@ -268,8 +268,8 @@ class AdminOperationsControllerTest {
             raceId = "race-1",
             raceName = "Monaco Grand Prix",
             openF1MeetingKey = 100,
-            createdAt = kotlinx.datetime.Instant.fromEpochMilliseconds(0),
-            updatedAt = kotlinx.datetime.Instant.fromEpochMilliseconds(0),
+            createdAt = kotlin.time.Instant.fromEpochMilliseconds(0),
+            updatedAt = kotlin.time.Instant.fromEpochMilliseconds(0),
             version = 1,
             results = listOf(
                 net.battaglini.fantaf1appbackend.model.RaceWeekendResult.Companion.Result("d1", 1, "VER", 25.0)
@@ -323,15 +323,15 @@ class AdminOperationsControllerTest {
             raceId = "race-1",
             openF1MeetingKey = 100,
             raceName = "Monaco Grand Prix",
-            dateStart = kotlinx.datetime.Instant.fromEpochMilliseconds(0),
-            dateEnd = kotlinx.datetime.Instant.fromEpochMilliseconds(0),
+            dateStart = kotlin.time.Instant.fromEpochMilliseconds(0),
+            dateEnd = kotlin.time.Instant.fromEpochMilliseconds(0),
             sessions = emptyList(),
             circuitImage = "circuit.png",
             countryName = "Monaco",
             countryFlag = "🇲🇨",
             circuitType = "street",
-            dateLineupOpen = kotlinx.datetime.Instant.fromEpochMilliseconds(0),
-            dateLineupClose = kotlinx.datetime.Instant.fromEpochMilliseconds(0)
+            dateLineupOpen = kotlin.time.Instant.fromEpochMilliseconds(0),
+            dateLineupClose = kotlin.time.Instant.fromEpochMilliseconds(0)
         )
         coEvery { raceWeekendService.getRaceWeekend("race-1") } returns raceWeekend
         coEvery { raceWeekendService.getRaceWeekendResults("race-1") } returns null
@@ -356,23 +356,23 @@ class AdminOperationsControllerTest {
             raceId = "race-1",
             openF1MeetingKey = 100,
             raceName = "Monaco Grand Prix",
-            dateStart = kotlinx.datetime.Instant.fromEpochMilliseconds(0),
-            dateEnd = kotlinx.datetime.Instant.fromEpochMilliseconds(0),
+            dateStart = kotlin.time.Instant.fromEpochMilliseconds(0),
+            dateEnd = kotlin.time.Instant.fromEpochMilliseconds(0),
             sessions = emptyList(),
             circuitImage = "circuit.png",
             countryName = "Monaco",
             countryFlag = "🇲🇨",
             circuitType = "street",
-            dateLineupOpen = kotlinx.datetime.Instant.fromEpochMilliseconds(0),
-            dateLineupClose = kotlinx.datetime.Instant.fromEpochMilliseconds(0)
+            dateLineupOpen = kotlin.time.Instant.fromEpochMilliseconds(0),
+            dateLineupClose = kotlin.time.Instant.fromEpochMilliseconds(0)
         )
         coEvery { raceWeekendService.getRaceWeekend("race-1") } returns raceWeekend
         coEvery { raceWeekendService.getRaceWeekendResults("race-1") } returns net.battaglini.fantaf1appbackend.model.RaceWeekendResult(
             raceId = "race-1",
             raceName = "Monaco Grand Prix",
             openF1MeetingKey = 100,
-            createdAt = kotlinx.datetime.Instant.fromEpochMilliseconds(0),
-            updatedAt = kotlinx.datetime.Instant.fromEpochMilliseconds(0),
+            createdAt = kotlin.time.Instant.fromEpochMilliseconds(0),
+            updatedAt = kotlin.time.Instant.fromEpochMilliseconds(0),
             version = 1,
             results = emptyList()
         )

@@ -1,5 +1,6 @@
 package net.battaglini.fantaf1appbackend.task
 
+import jakarta.annotation.PreDestroy
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import net.battaglini.fantaf1appbackend.configuration.ChannelConfiguration
@@ -10,7 +11,6 @@ import org.slf4j.LoggerFactory
 import org.springframework.boot.context.event.ApplicationStartedEvent
 import org.springframework.context.event.EventListener
 import org.springframework.stereotype.Component
-import jakarta.annotation.PreDestroy
 
 @Component
 class PricingTask(
@@ -24,7 +24,7 @@ class PricingTask(
         scope.launch {
             LOGGER.info("PricingTask started, listening for results calculation completed events")
             for (message in taskChannel) {
-                if (message.taskType == TaskType.RACE_WEEKEND_RESULTS_CALCULATION_COMPLETED) {
+                if (message.taskType == TaskType.UPDATE_DRIVERS_PRICING) {
                     try {
                         val result = message.data as RaceWeekendResult
                         LOGGER.info("Received results for {}, triggering price update", result.raceName)
@@ -35,6 +35,9 @@ class PricingTask(
                     } catch (e: Exception) {
                         LOGGER.error("Error processing pricing update for message: $message", e)
                     }
+                } else {
+                    // re-send message so that it can be consumed by the appropriate service
+                    taskChannel.send(message)
                 }
             }
         }

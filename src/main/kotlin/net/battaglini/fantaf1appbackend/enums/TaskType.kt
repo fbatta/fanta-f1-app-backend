@@ -1,5 +1,6 @@
 package net.battaglini.fantaf1appbackend.enums
 
 enum class TaskType {
-    RACE_WEEKEND_RESULTS_CALCULATION_COMPLETED
+    UPDATE_DRIVERS_PRICING,
+    CALCULATE_LINEUP_RESULTS
 }
