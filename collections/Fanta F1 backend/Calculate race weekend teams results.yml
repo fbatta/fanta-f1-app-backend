@@ -1,0 +1,21 @@
+info:
+  name: Calculate race weekend teams results
+  type: http
+  seq: 5
+
+http:
+  method: POST
+  url: "{{baseUrl}}/admin/teams/results"
+  body:
+    type: json
+    data: |-
+      {
+        "raceId": "00000000-0000-0504-0000-0000000007ea"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
