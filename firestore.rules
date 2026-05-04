@@ -103,6 +103,10 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow write: if false;
     }
+    match /race_weekend_recaps/{raceId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
 
     /// 8. DRIVER COSTS
     /// Read: anyone signed in can read
