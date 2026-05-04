@@ -5,11 +5,11 @@ import com.fasterxml.jackson.annotation.JsonProperty
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class OpenF1QualifyingSessionResultResponse(
-    val position: Int,
+    val position: Int? = NULL_POSITION_FALLBACK,
     @JsonProperty("driver_number")
     val driverNumber: Int,
     @JsonProperty("number_of_laps")
-    val numberOfLaps: Int,
+    val numberOfLaps: Int?,
     val dnf: Boolean,
     val dns: Boolean,
     val dsq: Boolean,
@@ -20,4 +20,8 @@ data class OpenF1QualifyingSessionResultResponse(
     val meetingKey: Int,
     @JsonProperty("session_key")
     val sessionKey: Int
-)
+) {
+    companion object {
+        const val NULL_POSITION_FALLBACK = 999
+    }
+}

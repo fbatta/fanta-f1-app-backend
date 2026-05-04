@@ -8,6 +8,7 @@ import net.battaglini.fantaf1appbackend.client.OpenF1Client
 import net.battaglini.fantaf1appbackend.enums.RaceWeekendSessionType
 import net.battaglini.fantaf1appbackend.model.DriverQualifyingResult
 import net.battaglini.fantaf1appbackend.model.RaceWeekend
+import net.battaglini.fantaf1appbackend.model.openf1.OpenF1QualifyingSessionResultResponse
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import kotlin.time.DurationUnit
@@ -57,7 +58,7 @@ class QualifyingResultsServiceImpl(
                     ?: 9_999.toDuration(DurationUnit.SECONDS),
                 fastestLapQ3 = result?.duration?.getOrNull(2)?.toDuration(DurationUnit.SECONDS)
                     ?: 9_999.toDuration(DurationUnit.SECONDS),
-                finalPosition = result?.position ?: 22,
+                finalPosition = result?.position ?: OpenF1QualifyingSessionResultResponse.NULL_POSITION_FALLBACK,
                 dns = result?.dns ?: false,
                 dnf = result?.dnf ?: false,
                 dsq = result?.dsq ?: false
