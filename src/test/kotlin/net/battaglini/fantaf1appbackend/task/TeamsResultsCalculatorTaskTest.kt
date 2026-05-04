@@ -14,6 +14,8 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import net.battaglini.fantaf1appbackend.configuration.ChannelConfiguration
 import net.battaglini.fantaf1appbackend.configuration.ResultsCalculatorProperties
+import net.battaglini.fantaf1appbackend.service.TeamResultsService
+import net.battaglini.fantaf1appbackend.service.TeamResultsServiceImpl
 import net.battaglini.fantaf1appbackend.enums.UserNotificationType
 import net.battaglini.fantaf1appbackend.model.*
 import net.battaglini.fantaf1appbackend.repository.LineupRepository
@@ -53,8 +55,14 @@ class TeamsResultsCalculatorTaskTest {
     @MockK(relaxed = true)
     lateinit var timeZone: TimeZone
 
+    @MockK
+    lateinit var teamResultsService: TeamResultsService
+
     @InjectMockKs
     lateinit var task: TeamsResultsCalculatorTask
+
+    @InjectMockKs
+    lateinit var teamResultsServiceImpl: TeamResultsServiceImpl
 
     @BeforeEach
     fun setUp() {
@@ -108,14 +116,14 @@ class TeamsResultsCalculatorTaskTest {
         val driverPoints = raceResult.results.associate { it.driverAcronym to it.points }
         val lineup = createLineup("team1", "race1")
 
-        val points = task.calculatePointsPerLineup(lineup, driverPoints)
+        val points = teamResultsServiceImpl.calculatePointsPerLineup(lineup, driverPoints)
 
         // VER (20.0) + HAM (15.0) = 35.0
         assertEquals(35.0, points)
     }
 
-    @Test
-    fun `runTask should perform calculation and save results in transaction`() = runTest {
+     @Test
+    fun `runTask should delegate to service and send notification`() = runTest {
         val raceResult = createRaceWeekendResult()
         val message = ChannelConfiguration.Companion.TaskChannelMessage(
             net.battaglini.fantaf1appbackend.enums.TaskType.RACE_WEEKEND_RESULTS_CALCULATION_COMPLETED,
@@ -123,64 +131,33 @@ class TeamsResultsCalculatorTaskTest {
         )
 
         every { taskChannel.tryReceive().getOrNull() } returns message
-        
-        val team1 = createTeam("team1")
-        val mockSnapshot = mockk<DocumentSnapshot>()
-        coEvery { teamRepository.getAllTeams(null) } returns flowOf(Pair(mockSnapshot, team1))
-        coEvery { teamRepository.getAllTeams(mockSnapshot) } returns emptyFlow()
-        
-        val lineup1 = createLineup("team1", "race1")
-        coEvery { lineupRepository.getLineup("team1", "race1") } returns lineup1
-        
-        val now = Instant.parse("2024-03-22T12:00:00Z")
-        every { clock.now() } returns now
-        
-        val mockTransaction = mockk<Transaction>()
-        val mockApiFuture = mockk<ApiFuture<Void>>()
-        every { mockApiFuture.get() } returns null
-        
-        // Mock transaction execution
-        every { firestore.runTransaction<Void>(any()) } answers {
-            val updateFunction = firstArg<Transaction.Function<Void>>()
-            updateFunction.updateCallback(mockTransaction)
-            mockApiFuture
-        }
-        
-        coEvery { lineupRepository.updateLineupInTransaction(any(), any()) } just Runs
-        coEvery { teamRepository.updateTeamInTransaction(any(), any()) } just Runs
+        coEvery { teamResultsService.calculateAndSaveLineupsResults(any()) } returns emptyMap()
         coEvery { userNotificationChannel.send(any()) } just Runs
 
         task.runTask()
         
-        coVerify { 
-            lineupRepository.updateLineupInTransaction(match { it.score == 35.0 }, mockTransaction)
-            teamRepository.updateTeamInTransaction(match { it.points[2024] == 35.0 }, mockTransaction)
-            userNotificationChannel.send(match { it.notificationType == UserNotificationType.RACE_WEEKEND_RESULTS_AVAILABLE })
-        }
+        coVerify { teamResultsService.calculateAndSaveLineupsResults(raceResult) }
+        coVerify { userNotificationChannel.send(match { it.notificationType == UserNotificationType.RACE_WEEKEND_RESULTS_AVAILABLE }) }
     }
 
     @Test
-    fun `runTask should handle dryRun correctly`() = runTest {
-        every { resultsCalculatorProperties.dryRun } returns true
-        val raceResult = createRaceWeekendResult()
-        val message = ChannelConfiguration.Companion.TaskChannelMessage(
-            net.battaglini.fantaf1appbackend.enums.TaskType.RACE_WEEKEND_RESULTS_CALCULATION_COMPLETED,
-            raceResult
-        )
-
-        every { taskChannel.tryReceive().getOrNull() } returns message
-        
-        val team1 = createTeam("team1")
-        coEvery { teamRepository.getAllTeams(null) } returns flowOf(Pair(mockk(), team1))
-        coEvery { teamRepository.getAllTeams(any()) } returns emptyFlow()
-        
-        coEvery { lineupRepository.getLineup("team1", "race1") } returns createLineup("team1", "race1")
-        every { clock.now() } returns Instant.parse("2024-03-22T12:00:00Z")
-        coEvery { userNotificationChannel.send(any()) } just Runs
+    fun `runTask should do nothing when channel is empty`() = runTest {
+        every { taskChannel.tryReceive().getOrNull() } returns null
+        every { resultsCalculatorProperties.enable } returns true
 
         task.runTask()
         
-        verify(exactly = 0) { firestore.runTransaction<Void>(any()) }
-        coVerify { userNotificationChannel.send(any()) }
+        coVerify(exactly = 0) { teamResultsService.calculateAndSaveLineupsResults(any()) }
+        coVerify(exactly = 0) { userNotificationChannel.send(any()) }
+    }
+
+    @Test
+    fun `runTask should skip when disabled`() = runTest {
+        every { resultsCalculatorProperties.enable } returns false
+
+        task.runTask()
+        
+        coVerify(exactly = 0) { taskChannel.tryReceive() }
+        coVerify(exactly = 0) { teamResultsService.calculateAndSaveLineupsResults(any()) }
     }
 }

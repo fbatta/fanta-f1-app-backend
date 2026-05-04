@@ -31,6 +31,9 @@ class AdminOperationsControllerTest {
     @MockkBean
     private lateinit var raceWeekendService: RaceWeekendService
 
+    @MockkBean
+    private lateinit var teamResultsService: net.battaglini.fantaf1appbackend.service.TeamResultsService
+
     @Test
     @WithMockUser(roles = ["ADMIN"])
     fun `seedDrivers should return 200 OK when successful`() {
@@ -196,7 +199,7 @@ class AdminOperationsControllerTest {
             .expectStatus().is5xxServerError
     }
 
-  @Test
+@Test
     @WithMockUser(roles = ["ADMIN"])
     fun `generateRaceRecaps should return empty recapIds and recaps when no races processed`() {
         val request = net.battaglini.fantaf1appbackend.model.request.GenerateRaceRecapRequest(
@@ -215,5 +218,173 @@ class AdminOperationsControllerTest {
             .expectBody()
             .jsonPath("$.recapIds").isEmpty
             .jsonPath("$.recaps").isEmpty
+    }
+
+    @Test
+    @WithMockUser(roles = ["ADMIN"])
+    fun `calculateTeamsResults should return 200 OK when successful`() {
+        val request = net.battaglini.fantaf1appbackend.model.request.CalculateTeamsResultsRequest(
+            raceId = "race-1"
+        )
+        val raceWeekend = net.battaglini.fantaf1appbackend.model.RaceWeekend(
+            raceId = "race-1",
+            openF1MeetingKey = 100,
+            raceName = "Monaco Grand Prix",
+            dateStart = kotlinx.datetime.Instant.fromEpochMilliseconds(0),
+            dateEnd = kotlinx.datetime.Instant.fromEpochMilliseconds(0),
+            sessions = emptyList(),
+            circuitImage = "circuit.png",
+            countryName = "Monaco",
+            countryFlag = "🇲🇨",
+            circuitType = "street",
+            dateLineupOpen = kotlinx.datetime.Instant.fromEpochMilliseconds(0),
+            dateLineupClose = kotlinx.datetime.Instant.fromEpochMilliseconds(0)
+        )
+        val team = net.battaglini.fantaf1appbackend.model.Team(
+            teamId = "team1",
+            teamName = "Red Bull Racing",
+            teamAvatarUrl = null,
+            ownerId = "owner1",
+            lobbyId = "lobby1",
+            createdAt = kotlinx.datetime.Instant.fromEpochMilliseconds(0),
+            updatedAt = kotlinx.datetime.Instant.fromEpochMilliseconds(0),
+            points = mutableMapOf(2025 to 100.0)
+        )
+        val lineup = net.battaglini.fantaf1appbackend.model.Lineup(
+            lineupId = "lineup1",
+            teamId = "team1",
+            ownerId = "owner1",
+            raceId = "race-1",
+            drivers = listOf(
+                net.battaglini.fantaf1appbackend.model.Lineup.Companion.LineupDriver("d1", 1, "VER", 10.0)
+            ),
+            createdAt = kotlinx.datetime.Instant.fromEpochMilliseconds(0),
+            updatedAt = kotlinx.datetime.Instant.fromEpochMilliseconds(0),
+            version = 1,
+            score = 25.0
+        )
+        coEvery { raceWeekendService.getRaceWeekend("race-1") } returns raceWeekend
+        coEvery { raceWeekendService.getRaceWeekendResults("race-1") } returns net.battaglini.fantaf1appbackend.model.RaceWeekendResult(
+            raceId = "race-1",
+            raceName = "Monaco Grand Prix",
+            openF1MeetingKey = 100,
+            createdAt = kotlinx.datetime.Instant.fromEpochMilliseconds(0),
+            updatedAt = kotlinx.datetime.Instant.fromEpochMilliseconds(0),
+            version = 1,
+            results = listOf(
+                net.battaglini.fantaf1appbackend.model.RaceWeekendResult.Companion.Result("d1", 1, "VER", 25.0)
+            )
+        )
+        coEvery { teamResultsService.calculateAndSaveLineupsResults(any()) } returns mapOf(team to lineup)
+
+        webTestClient
+            .mutateWith(csrf())
+            .post()
+            .uri("/admin/teams/results")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(request)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody()
+            .jsonPath("$.raceId").isEqualTo("race-1")
+            .jsonPath("$.raceName").isEqualTo("Monaco Grand Prix")
+            .jsonPath("$.scores").isArray
+            .jsonPath("$.scores.length()").isEqualTo(1)
+            .jsonPath("$.scores[0].lineup.score").isEqualTo(25.0)
+
+        coVerify { teamResultsService.calculateAndSaveLineupsResults(any()) }
+    }
+
+    @Test
+    @WithMockUser(roles = ["ADMIN"])
+    fun `calculateTeamsResults should return 500 when race weekend not found`() {
+        val request = net.battaglini.fantaf1appbackend.model.request.CalculateTeamsResultsRequest(
+            raceId = "nonexistent"
+        )
+        coEvery { raceWeekendService.getRaceWeekend("nonexistent") } returns null
+
+        webTestClient
+            .mutateWith(csrf())
+            .post()
+            .uri("/admin/teams/results")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(request)
+            .exchange()
+            .expectStatus().is5xxServerError
+    }
+
+    @Test
+    @WithMockUser(roles = ["ADMIN"])
+    fun `calculateTeamsResults should return 500 when race weekend results not found`() {
+        val request = net.battaglini.fantaf1appbackend.model.request.CalculateTeamsResultsRequest(
+            raceId = "race-1"
+        )
+        val raceWeekend = net.battaglini.fantaf1appbackend.model.RaceWeekend(
+            raceId = "race-1",
+            openF1MeetingKey = 100,
+            raceName = "Monaco Grand Prix",
+            dateStart = kotlinx.datetime.Instant.fromEpochMilliseconds(0),
+            dateEnd = kotlinx.datetime.Instant.fromEpochMilliseconds(0),
+            sessions = emptyList(),
+            circuitImage = "circuit.png",
+            countryName = "Monaco",
+            countryFlag = "🇲🇨",
+            circuitType = "street",
+            dateLineupOpen = kotlinx.datetime.Instant.fromEpochMilliseconds(0),
+            dateLineupClose = kotlinx.datetime.Instant.fromEpochMilliseconds(0)
+        )
+        coEvery { raceWeekendService.getRaceWeekend("race-1") } returns raceWeekend
+        coEvery { raceWeekendService.getRaceWeekendResults("race-1") } returns null
+
+        webTestClient
+            .mutateWith(csrf())
+            .post()
+            .uri("/admin/teams/results")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(request)
+            .exchange()
+            .expectStatus().is5xxServerError
+    }
+
+    @Test
+    @WithMockUser(roles = ["ADMIN"])
+    fun `calculateTeamsResults should return 500 when service fails`() {
+        val request = net.battaglini.fantaf1appbackend.model.request.CalculateTeamsResultsRequest(
+            raceId = "race-1"
+        )
+        val raceWeekend = net.battaglini.fantaf1appbackend.model.RaceWeekend(
+            raceId = "race-1",
+            openF1MeetingKey = 100,
+            raceName = "Monaco Grand Prix",
+            dateStart = kotlinx.datetime.Instant.fromEpochMilliseconds(0),
+            dateEnd = kotlinx.datetime.Instant.fromEpochMilliseconds(0),
+            sessions = emptyList(),
+            circuitImage = "circuit.png",
+            countryName = "Monaco",
+            countryFlag = "🇲🇨",
+            circuitType = "street",
+            dateLineupOpen = kotlinx.datetime.Instant.fromEpochMilliseconds(0),
+            dateLineupClose = kotlinx.datetime.Instant.fromEpochMilliseconds(0)
+        )
+        coEvery { raceWeekendService.getRaceWeekend("race-1") } returns raceWeekend
+        coEvery { raceWeekendService.getRaceWeekendResults("race-1") } returns net.battaglini.fantaf1appbackend.model.RaceWeekendResult(
+            raceId = "race-1",
+            raceName = "Monaco Grand Prix",
+            openF1MeetingKey = 100,
+            createdAt = kotlinx.datetime.Instant.fromEpochMilliseconds(0),
+            updatedAt = kotlinx.datetime.Instant.fromEpochMilliseconds(0),
+            version = 1,
+            results = emptyList()
+        )
+        coEvery { teamResultsService.calculateAndSaveLineupsResults(any()) } throws RuntimeException("DB error")
+
+        webTestClient
+            .mutateWith(csrf())
+            .post()
+            .uri("/admin/teams/results")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(request)
+            .exchange()
+            .expectStatus().is5xxServerError
     }
 }

@@ -17,6 +17,7 @@ import net.battaglini.fantaf1appbackend.model.openf1.OpenF1MeetingResponse
 import net.battaglini.fantaf1appbackend.model.openf1.OpenF1SessionResponse
 import net.battaglini.fantaf1appbackend.repository.RaceRepository
 import net.battaglini.fantaf1appbackend.repository.RaceWeekendRecapRepository
+import net.battaglini.fantaf1appbackend.repository.RaceWeekendResultRepository
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -46,6 +47,9 @@ class RaceWeekendServiceTest {
 
     @MockK
     lateinit var clock: Clock
+
+    @MockK
+    lateinit var raceWeekendResultRepository: RaceWeekendResultRepository
 
     val timeZone = TimeZone.UTC
 
@@ -264,7 +268,7 @@ class RaceWeekendServiceTest {
         val result = raceWeekendService.generateRaceRecap(listOf("race-1"))
 
         assertEquals(1, result.size)
-      assertEquals("race-1", result[0].raceId)
+    assertEquals("race-1", result[0].raceId)
         assertEquals("Monaco Grand Prix", result[0].raceName)
         assertEquals(2, result[0].recapParagraphs.size)
         coVerify { genAIService.generateRaceRecap("Monaco Grand Prix") }
@@ -289,7 +293,7 @@ class RaceWeekendServiceTest {
         val result = raceWeekendService.generateRaceRecap(listOf("race-1", "race-2"))
 
         assertEquals(2, result.size)
-      assertTrue(result.any { it.raceId == "race-1" })
+    assertTrue(result.any { it.raceId == "race-1" })
         assertTrue(result.any { it.raceId == "race-2" })
         coVerify { genAIService.generateRaceRecap("Monaco Grand Prix") }
         coVerify { genAIService.generateRaceRecap("British Grand Prix") }
@@ -318,7 +322,7 @@ class RaceWeekendServiceTest {
         val result = raceWeekendService.generateRaceRecap(listOf("race-1", "race-2"))
 
         assertEquals(1, result.size)
-      assertEquals("race-2", result[0].raceId)
+    assertEquals("race-2", result[0].raceId)
     }
 
     @Test
@@ -328,5 +332,59 @@ class RaceWeekendServiceTest {
         assertTrue(result.isEmpty())
         coVerify(exactly = 0) { genAIService.generateRaceRecap(any()) }
         coVerify(exactly = 0) { raceWeekendRecapRepository.saveRaceWeekendRecap(any()) }
+    }
+
+    @Test
+    fun `getRaceWeekend should return race when found`() = runTest {
+        val raceWeekend = createRaceWeekend(raceId = "race-1", raceName = "Monaco Grand Prix", openF1MeetingKey = 100)
+
+        coEvery { raceRepository.getRaceById("race-1") } returns flowOf(raceWeekend)
+
+        val result = raceWeekendService.getRaceWeekend("race-1")
+
+        assertNotNull(result)
+        assertEquals("race-1", result?.raceId)
+        assertEquals("Monaco Grand Prix", result?.raceName)
+    }
+
+    @Test
+    fun `getRaceWeekend should return null when not found`() = runTest {
+        coEvery { raceRepository.getRaceById("nonexistent") } returns emptyFlow()
+
+        val result = raceWeekendService.getRaceWeekend("nonexistent")
+
+        assertNull(result)
+    }
+
+    @Test
+    fun `getRaceWeekendResults should return result when found`() = runTest {
+        val raceWeekendResult = net.battaglini.fantaf1appbackend.model.RaceWeekendResult(
+            raceId = "race-1",
+            raceName = "Monaco Grand Prix",
+            openF1MeetingKey = 100,
+            createdAt = Instant.fromEpochMilliseconds(0),
+            updatedAt = Instant.fromEpochMilliseconds(0),
+            version = 1,
+            results = listOf(
+                net.battaglini.fantaf1appbackend.model.RaceWeekendResult.Companion.Result("d1", 1, "VER", 25.0)
+            )
+        )
+
+        coEvery { raceWeekendResultRepository.findRaceWeekendResult(raceId = "race-1") } returns raceWeekendResult
+
+        val result = raceWeekendService.getRaceWeekendResults("race-1")
+
+        assertNotNull(result)
+        assertEquals("race-1", result?.raceId)
+        assertEquals(1, result?.results?.size)
+    }
+
+    @Test
+    fun `getRaceWeekendResults should return null when not found`() = runTest {
+        coEvery { raceWeekendResultRepository.findRaceWeekendResult(raceId = "nonexistent") } returns null
+
+        val result = raceWeekendService.getRaceWeekendResults("nonexistent")
+
+        assertNull(result)
     }
 }
