@@ -13,7 +13,6 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.UtcOffset
-import kotlinx.datetime.toLocalDateTime
 import net.battaglini.fantaf1appbackend.client.OpenF1Client
 import net.battaglini.fantaf1appbackend.configuration.ChannelConfiguration
 import net.battaglini.fantaf1appbackend.configuration.ResultsCalculatorProperties
@@ -29,15 +28,11 @@ import net.battaglini.fantaf1appbackend.repository.RaceWeekendResultRepository
 import net.battaglini.fantaf1appbackend.service.PracticeResultsService
 import net.battaglini.fantaf1appbackend.service.QualifyingResultsService
 import net.battaglini.fantaf1appbackend.service.RaceResultsService
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
-import kotlin.time.Clock
-import kotlin.time.Duration
-import kotlin.time.DurationUnit
-import kotlin.time.Instant
-import kotlin.time.toDuration
+import kotlin.time.*
 import kotlin.uuid.ExperimentalUuidApi
 
 @OptIn(ExperimentalUuidApi::class, ExperimentalCoroutinesApi::class)
@@ -82,7 +77,7 @@ class RaceWeekendResultsCalculatorTaskTest {
         clearAllMocks()
         every { resultsCalculatorProperties.enable } returns true
         every { resultsCalculatorProperties.dryRun } returns false
-        
+
         mockkStatic("kotlinx.coroutines.DelayKt")
         coEvery { delay(any<Long>()) } just Runs
         coEvery { delay(any<kotlin.time.Duration>()) } just Runs
@@ -115,31 +110,33 @@ class RaceWeekendResultsCalculatorTaskTest {
         gmtOffset = UtcOffset.ZERO
     )
 
-    private fun createPracticeResult(acronym: String, fastestLap: Duration, raceId: String = "race1") = DriverPracticeResult(
-        fastestLap = fastestLap,
-        raceId = raceId,
-        driverId = "id-$acronym",
-        sessionId = "session1",
-        sessionType = RaceWeekendSessionType.PRACTICE_COMBINED,
-        driverNumber = 1,
-        driverAcronym = acronym
-    )
+    private fun createPracticeResult(acronym: String, fastestLap: Duration, raceId: String = "race1") =
+        DriverPracticeResult(
+            fastestLap = fastestLap,
+            raceId = raceId,
+            driverId = "id-$acronym",
+            sessionId = "session1",
+            sessionType = RaceWeekendSessionType.PRACTICE_COMBINED,
+            driverNumber = 1,
+            driverAcronym = acronym
+        )
 
-    private fun createQualifyingResult(acronym: String, position: Int, raceId: String = "race1") = DriverQualifyingResult(
-        fastestLapQ1 = 1.0.toDuration(DurationUnit.SECONDS),
-        fastestLapQ2 = 1.0.toDuration(DurationUnit.SECONDS),
-        fastestLapQ3 = 1.0.toDuration(DurationUnit.SECONDS),
-        finalPosition = position,
-        dns = false,
-        dnf = false,
-        dsq = false,
-        raceId = raceId,
-        driverId = "id-$acronym",
-        sessionId = "session1",
-        sessionType = RaceWeekendSessionType.QUALIFYING,
-        driverNumber = 1,
-        driverAcronym = acronym
-    )
+    private fun createQualifyingResult(acronym: String, position: Int, raceId: String = "race1") =
+        DriverQualifyingResult(
+            fastestLapQ1 = 1.0.toDuration(DurationUnit.SECONDS),
+            fastestLapQ2 = 1.0.toDuration(DurationUnit.SECONDS),
+            fastestLapQ3 = 1.0.toDuration(DurationUnit.SECONDS),
+            finalPosition = position,
+            dns = false,
+            dnf = false,
+            dsq = false,
+            raceId = raceId,
+            driverId = "id-$acronym",
+            sessionId = "session1",
+            sessionType = RaceWeekendSessionType.QUALIFYING,
+            driverNumber = 1,
+            driverAcronym = acronym
+        )
 
     private fun createRaceResult(acronym: String, position: Int, raceId: String = "race1") = DriverRaceResult(
         fastestLap = 1.0.toDuration(DurationUnit.SECONDS),
@@ -204,7 +201,7 @@ class RaceWeekendResultsCalculatorTaskTest {
 
         assertEquals("race1", result.raceId)
         assertEquals(2, result.results.size)
-        
+
         val verResult = result.results.find { it.driverAcronym == "VER" }!!
         assertEquals(20.0, verResult.points)
 
@@ -217,12 +214,12 @@ class RaceWeekendResultsCalculatorTaskTest {
         val now = Instant.parse("2024-03-22T12:00:00Z")
         every { clock.now() } returns now
         val year = 2024
-        
+
         val meeting = createMeeting(1, year, LocalDateTime(year, 3, 20, 10, 0, 0))
-        
+
         every { openF1Client.getRaces(meetingKey = any(), year = any(), circuitKey = any()) } returns flowOf(meeting)
         coEvery { raceWeekendResultRepository.findRaceWeekendResult(openF1MeetingKey = 1) } returns null
-        
+
         val sessionResponse = OpenF1SessionResponse(
             meetingKey = 1,
             sessionKey = 101,
@@ -234,31 +231,41 @@ class RaceWeekendResultsCalculatorTaskTest {
             year = year
         )
         every { openF1Client.getSessions(1) } returns flowOf(sessionResponse)
-        
+
         val ver = createDriver("VER")
         coEvery { driverRepository.getDrivers() } returns flowOf(ver)
-        
-        coEvery { practiceResultsService.getDriversResultsForCombinedPractice(any()) } returns flowOf(createPracticeResult("VER", 1.0.toDuration(DurationUnit.SECONDS), "dummy"))
-        coEvery { qualifyingResultsService.getDriversResultsForQualifying(any(), false) } returns flowOf(createQualifyingResult("VER", 1, "dummy"))
+
+        coEvery { practiceResultsService.getDriversResultsForCombinedPractice(any()) } returns flowOf(
+            createPracticeResult("VER", 1.0.toDuration(DurationUnit.SECONDS), "dummy")
+        )
+        coEvery { qualifyingResultsService.getDriversResultsForQualifying(any(), false) } returns flowOf(
+            createQualifyingResult("VER", 1, "dummy")
+        )
         coEvery { qualifyingResultsService.getDriversResultsForQualifying(any(), true) } returns flowOf()
-        coEvery { raceResultsService.getResultsForRace(any(), false) } returns flowOf(createRaceResult("VER", 1, "dummy"))
+        coEvery { raceResultsService.getResultsForRace(any(), false) } returns flowOf(
+            createRaceResult(
+                "VER",
+                1,
+                "dummy"
+            )
+        )
         coEvery { raceResultsService.getResultsForRace(any(), true) } returns flowOf()
-        
+
         coEvery { raceWeekendResultRepository.saveRaceWeekendResult(any()) } just Runs
         coEvery { taskChannel.send(any()) } just Runs
 
         task.runTask()
-        
+
         coVerify(timeout = 5000) { raceWeekendResultRepository.saveRaceWeekendResult(any()) }
-        coVerify(timeout = 5000) { taskChannel.send(match { it.taskType == TaskType.RACE_WEEKEND_RESULTS_CALCULATION_COMPLETED }) }
+        coVerify(timeout = 5000) { taskChannel.send(match { it.taskType == TaskType.UPDATE_DRIVERS_PRICING }) }
     }
 
     @Test
     fun `runTask should skip if disabled`() = runTest {
         every { resultsCalculatorProperties.enable } returns false
-        
+
         task.runTask()
-        
+
         coVerify(exactly = 0) { openF1Client.getRaces(any(), any(), any()) }
     }
 
@@ -267,13 +274,13 @@ class RaceWeekendResultsCalculatorTaskTest {
         val now = Instant.parse("2024-03-22T12:00:00Z")
         every { clock.now() } returns now
         val year = 2024
-        
+
         val meeting = createMeeting(1, year, LocalDateTime(year, 3, 10, 12, 0, 0))
-        
+
         every { openF1Client.getRaces(meetingKey = any(), year = any(), circuitKey = any()) } returns flowOf(meeting)
-        
+
         task.runTask()
-        
+
         coVerify(exactly = 0) { raceWeekendResultRepository.findRaceWeekendResult(any(), any()) }
     }
 
@@ -283,12 +290,12 @@ class RaceWeekendResultsCalculatorTaskTest {
         every { clock.now() } returns now
         val year = 2024
         val meeting = createMeeting(1, year, LocalDateTime(year, 3, 20, 10, 0, 0))
-        
+
         every { openF1Client.getRaces(meetingKey = any(), year = any(), circuitKey = any()) } returns flowOf(meeting)
         coEvery { raceWeekendResultRepository.findRaceWeekendResult(openF1MeetingKey = 1) } returns mockk()
-        
+
         task.runTask()
-        
+
         coVerify(exactly = 0) { openF1Client.getSessions(any()) }
     }
 
@@ -299,20 +306,30 @@ class RaceWeekendResultsCalculatorTaskTest {
         every { clock.now() } returns now
         val year = 2024
         val meeting = createMeeting(1, year, LocalDateTime(year, 3, 20, 10, 0, 0))
-        
+
         every { openF1Client.getRaces(any(), any(), any()) } returns flowOf(meeting)
         coEvery { raceWeekendResultRepository.findRaceWeekendResult(openF1MeetingKey = 1) } returns null
         every { openF1Client.getSessions(1) } returns flowOf()
-        
+
         val ver = createDriver("VER")
         coEvery { driverRepository.getDrivers() } returns flowOf(ver)
-        
-        coEvery { practiceResultsService.getDriversResultsForCombinedPractice(any()) } returns flowOf(createPracticeResult("VER", 1.0.toDuration(DurationUnit.SECONDS), "dummy"))
-        coEvery { qualifyingResultsService.getDriversResultsForQualifying(any(), false) } returns flowOf(createQualifyingResult("VER", 1, "dummy"))
-        coEvery { raceResultsService.getResultsForRace(any(), false) } returns flowOf(createRaceResult("VER", 1, "dummy"))
-        
+
+        coEvery { practiceResultsService.getDriversResultsForCombinedPractice(any()) } returns flowOf(
+            createPracticeResult("VER", 1.0.toDuration(DurationUnit.SECONDS), "dummy")
+        )
+        coEvery { qualifyingResultsService.getDriversResultsForQualifying(any(), false) } returns flowOf(
+            createQualifyingResult("VER", 1, "dummy")
+        )
+        coEvery { raceResultsService.getResultsForRace(any(), false) } returns flowOf(
+            createRaceResult(
+                "VER",
+                1,
+                "dummy"
+            )
+        )
+
         task.runTask()
-        
+
         coVerify(exactly = 0) { raceWeekendResultRepository.saveRaceWeekendResult(any()) }
         coVerify(exactly = 0) { taskChannel.send(any()) }
     }
@@ -323,18 +340,22 @@ class RaceWeekendResultsCalculatorTaskTest {
         every { clock.now() } returns now
         val year = 2024
         val meeting = createMeeting(1, year, LocalDateTime(year, 3, 20, 10, 0, 0))
-        
+
         every { openF1Client.getRaces(any(), any(), any()) } returns flowOf(meeting)
         coEvery { raceWeekendResultRepository.findRaceWeekendResult(openF1MeetingKey = 1) } returns null
         every { openF1Client.getSessions(1) } returns flowOf()
-        
+
         // Missing race results
-        coEvery { practiceResultsService.getDriversResultsForCombinedPractice(any()) } returns flowOf(createPracticeResult("VER", 1.0.toDuration(DurationUnit.SECONDS)))
-        coEvery { qualifyingResultsService.getDriversResultsForQualifying(any(), false) } returns flowOf(createQualifyingResult("VER", 1))
+        coEvery { practiceResultsService.getDriversResultsForCombinedPractice(any()) } returns flowOf(
+            createPracticeResult("VER", 1.0.toDuration(DurationUnit.SECONDS))
+        )
+        coEvery { qualifyingResultsService.getDriversResultsForQualifying(any(), false) } returns flowOf(
+            createQualifyingResult("VER", 1)
+        )
         coEvery { raceResultsService.getResultsForRace(any(), any()) } returns emptyFlow()
-        
+
         task.runTask()
-        
+
         coVerify(exactly = 0) { raceWeekendResultRepository.saveRaceWeekendResult(any()) }
     }
 }

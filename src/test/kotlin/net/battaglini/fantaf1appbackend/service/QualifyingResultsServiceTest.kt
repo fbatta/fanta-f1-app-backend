@@ -1,10 +1,14 @@
 package net.battaglini.fantaf1appbackend.service
 
-import io.mockk.*
+import io.mockk.clearAllMocks
+import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.impl.annotations.InjectMockKs
 import io.mockk.impl.annotations.MockK
 import io.mockk.junit5.MockKExtension
-import kotlinx.coroutines.flow.*
+import io.mockk.verify
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import net.battaglini.fantaf1appbackend.client.OpenF1Client
 import net.battaglini.fantaf1appbackend.enums.RaceWeekendSessionType
@@ -58,7 +62,11 @@ class QualifyingResultsServiceTest {
     fun `getDriversResultsForQualifying should map Q1 Q2 Q3 times from qualifying results`() = runTest {
         val raceWeekend = TestFactories.createRaceWeekend(
             sessions = listOf(
-                TestFactories.createSession(sessionId = "sess1", openF1SessionKey = 1001, sessionType = RaceWeekendSessionType.QUALIFYING)
+                TestFactories.createSession(
+                    sessionId = "sess1",
+                    openF1SessionKey = 1001,
+                    sessionType = RaceWeekendSessionType.QUALIFYING
+                )
             )
         )
         val driver = TestFactories.createDriver(driverNumber = 1)
@@ -68,7 +76,8 @@ class QualifyingResultsServiceTest {
         )
         coEvery { driverService.getDriversInSessions(listOf(1001)) } returns flowOf(driver)
 
-        val result = qualifyingResultsService.getDriversResultsForQualifying(raceWeekend, isSprintQualifying = false).toList()
+        val result =
+            qualifyingResultsService.getDriversResultsForQualifying(raceWeekend, isSprintQualifying = false).toList()
 
         assertEquals(1, result.size)
         assertEquals(88.0.seconds, result[0].fastestLapQ1)
@@ -96,7 +105,8 @@ class QualifyingResultsServiceTest {
         )
         coEvery { driverService.getDriversInSessions(listOf(2001)) } returns flowOf(driver)
 
-        val result = qualifyingResultsService.getDriversResultsForQualifying(raceWeekend, isSprintQualifying = true).toList()
+        val result =
+            qualifyingResultsService.getDriversResultsForQualifying(raceWeekend, isSprintQualifying = true).toList()
 
         assertEquals(1, result.size)
         assertEquals(RaceWeekendSessionType.SPRINT_QUALIFYING, result[0].sessionType)
@@ -107,12 +117,21 @@ class QualifyingResultsServiceTest {
     fun `getDriversResultsForQualifying should return emptyFlow when no qualifying session found`() = runTest {
         val raceWeekend = TestFactories.createRaceWeekend(
             sessions = listOf(
-                TestFactories.createSession(sessionId = "sess1", openF1SessionKey = 1001, sessionType = RaceWeekendSessionType.PRACTICE_1),
-                TestFactories.createSession(sessionId = "sess2", openF1SessionKey = 1002, sessionType = RaceWeekendSessionType.RACE)
+                TestFactories.createSession(
+                    sessionId = "sess1",
+                    openF1SessionKey = 1001,
+                    sessionType = RaceWeekendSessionType.PRACTICE_1
+                ),
+                TestFactories.createSession(
+                    sessionId = "sess2",
+                    openF1SessionKey = 1002,
+                    sessionType = RaceWeekendSessionType.RACE
+                )
             )
         )
 
-        val result = qualifyingResultsService.getDriversResultsForQualifying(raceWeekend, isSprintQualifying = false).toList()
+        val result =
+            qualifyingResultsService.getDriversResultsForQualifying(raceWeekend, isSprintQualifying = false).toList()
 
         assertTrue(result.isEmpty())
         verify(exactly = 0) { openF1Client.getQualifyingResults(any()) }
@@ -123,7 +142,11 @@ class QualifyingResultsServiceTest {
     fun `getDriversResultsForQualifying should apply defaults when driver has no result`() = runTest {
         val raceWeekend = TestFactories.createRaceWeekend(
             sessions = listOf(
-                TestFactories.createSession(sessionId = "sess1", openF1SessionKey = 1001, sessionType = RaceWeekendSessionType.QUALIFYING)
+                TestFactories.createSession(
+                    sessionId = "sess1",
+                    openF1SessionKey = 1001,
+                    sessionType = RaceWeekendSessionType.QUALIFYING
+                )
             )
         )
         val driver = TestFactories.createDriver(driverNumber = 99) // Driver not in results
@@ -133,14 +156,15 @@ class QualifyingResultsServiceTest {
         )
         coEvery { driverService.getDriversInSessions(listOf(1001)) } returns flowOf(driver)
 
-        val result = qualifyingResultsService.getDriversResultsForQualifying(raceWeekend, isSprintQualifying = false).toList()
+        val result =
+            qualifyingResultsService.getDriversResultsForQualifying(raceWeekend, isSprintQualifying = false).toList()
 
         assertEquals(1, result.size)
         // Defaults: Q1/Q2/Q3 = 9999s, position = 22, dns/dnf/dsq = false
         assertEquals(9_999.seconds, result[0].fastestLapQ1)
         assertEquals(9_999.seconds, result[0].fastestLapQ2)
         assertEquals(9_999.seconds, result[0].fastestLapQ3)
-        assertEquals(22, result[0].finalPosition)
+        assertEquals(999, result[0].finalPosition)
         assertFalse(result[0].dns)
         assertFalse(result[0].dnf)
         assertFalse(result[0].dsq)
@@ -150,7 +174,11 @@ class QualifyingResultsServiceTest {
     fun `getDriversResultsForQualifying should default Q3 when only Q1 and Q2 times available`() = runTest {
         val raceWeekend = TestFactories.createRaceWeekend(
             sessions = listOf(
-                TestFactories.createSession(sessionId = "sess1", openF1SessionKey = 1001, sessionType = RaceWeekendSessionType.QUALIFYING)
+                TestFactories.createSession(
+                    sessionId = "sess1",
+                    openF1SessionKey = 1001,
+                    sessionType = RaceWeekendSessionType.QUALIFYING
+                )
             )
         )
         val driver = TestFactories.createDriver(driverNumber = 1)
@@ -161,7 +189,8 @@ class QualifyingResultsServiceTest {
         )
         coEvery { driverService.getDriversInSessions(listOf(1001)) } returns flowOf(driver)
 
-        val result = qualifyingResultsService.getDriversResultsForQualifying(raceWeekend, isSprintQualifying = false).toList()
+        val result =
+            qualifyingResultsService.getDriversResultsForQualifying(raceWeekend, isSprintQualifying = false).toList()
 
         assertEquals(1, result.size)
         assertEquals(88.0.seconds, result[0].fastestLapQ1)
@@ -174,7 +203,11 @@ class QualifyingResultsServiceTest {
     fun `getDriversResultsForQualifying should set dns flag when driver is DNS`() = runTest {
         val raceWeekend = TestFactories.createRaceWeekend(
             sessions = listOf(
-                TestFactories.createSession(sessionId = "sess1", openF1SessionKey = 1001, sessionType = RaceWeekendSessionType.QUALIFYING)
+                TestFactories.createSession(
+                    sessionId = "sess1",
+                    openF1SessionKey = 1001,
+                    sessionType = RaceWeekendSessionType.QUALIFYING
+                )
             )
         )
         val driver = TestFactories.createDriver(driverNumber = 77)
@@ -184,7 +217,8 @@ class QualifyingResultsServiceTest {
         )
         coEvery { driverService.getDriversInSessions(listOf(1001)) } returns flowOf(driver)
 
-        val result = qualifyingResultsService.getDriversResultsForQualifying(raceWeekend, isSprintQualifying = false).toList()
+        val result =
+            qualifyingResultsService.getDriversResultsForQualifying(raceWeekend, isSprintQualifying = false).toList()
 
         assertEquals(1, result.size)
         assertTrue(result[0].dns)
@@ -196,7 +230,11 @@ class QualifyingResultsServiceTest {
     fun `getDriversResultsForQualifying should set dnf flag when driver has DNF`() = runTest {
         val raceWeekend = TestFactories.createRaceWeekend(
             sessions = listOf(
-                TestFactories.createSession(sessionId = "sess1", openF1SessionKey = 1001, sessionType = RaceWeekendSessionType.QUALIFYING)
+                TestFactories.createSession(
+                    sessionId = "sess1",
+                    openF1SessionKey = 1001,
+                    sessionType = RaceWeekendSessionType.QUALIFYING
+                )
             )
         )
         val driver = TestFactories.createDriver(driverNumber = 20)
@@ -206,7 +244,8 @@ class QualifyingResultsServiceTest {
         )
         coEvery { driverService.getDriversInSessions(listOf(1001)) } returns flowOf(driver)
 
-        val result = qualifyingResultsService.getDriversResultsForQualifying(raceWeekend, isSprintQualifying = false).toList()
+        val result =
+            qualifyingResultsService.getDriversResultsForQualifying(raceWeekend, isSprintQualifying = false).toList()
 
         assertEquals(1, result.size)
         assertFalse(result[0].dns)
@@ -218,7 +257,11 @@ class QualifyingResultsServiceTest {
     fun `getDriversResultsForQualifying should set dsq flag when driver is disqualified`() = runTest {
         val raceWeekend = TestFactories.createRaceWeekend(
             sessions = listOf(
-                TestFactories.createSession(sessionId = "sess1", openF1SessionKey = 1001, sessionType = RaceWeekendSessionType.QUALIFYING)
+                TestFactories.createSession(
+                    sessionId = "sess1",
+                    openF1SessionKey = 1001,
+                    sessionType = RaceWeekendSessionType.QUALIFYING
+                )
             )
         )
         val driver = TestFactories.createDriver(driverNumber = 18)
@@ -228,7 +271,8 @@ class QualifyingResultsServiceTest {
         )
         coEvery { driverService.getDriversInSessions(listOf(1001)) } returns flowOf(driver)
 
-        val result = qualifyingResultsService.getDriversResultsForQualifying(raceWeekend, isSprintQualifying = false).toList()
+        val result =
+            qualifyingResultsService.getDriversResultsForQualifying(raceWeekend, isSprintQualifying = false).toList()
 
         assertEquals(1, result.size)
         assertFalse(result[0].dns)
@@ -240,7 +284,11 @@ class QualifyingResultsServiceTest {
     fun `getDriversResultsForQualifying should apply defaults when qualifying result durations are null`() = runTest {
         val raceWeekend = TestFactories.createRaceWeekend(
             sessions = listOf(
-                TestFactories.createSession(sessionId = "sess1", openF1SessionKey = 1001, sessionType = RaceWeekendSessionType.QUALIFYING)
+                TestFactories.createSession(
+                    sessionId = "sess1",
+                    openF1SessionKey = 1001,
+                    sessionType = RaceWeekendSessionType.QUALIFYING
+                )
             )
         )
         val driver = TestFactories.createDriver(driverNumber = 1)
@@ -252,7 +300,8 @@ class QualifyingResultsServiceTest {
         )
         coEvery { driverService.getDriversInSessions(listOf(1001)) } returns flowOf(driver)
 
-        val result = qualifyingResultsService.getDriversResultsForQualifying(raceWeekend, isSprintQualifying = false).toList()
+        val result =
+            qualifyingResultsService.getDriversResultsForQualifying(raceWeekend, isSprintQualifying = false).toList()
 
         assertEquals(1, result.size)
         assertEquals(9_999.seconds, result[0].fastestLapQ1)

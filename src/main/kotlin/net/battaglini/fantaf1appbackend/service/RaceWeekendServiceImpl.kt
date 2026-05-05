@@ -2,17 +2,21 @@ package net.battaglini.fantaf1appbackend.service
 
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import net.battaglini.fantaf1appbackend.client.OpenF1Client
 import net.battaglini.fantaf1appbackend.configuration.SeedingProperties
+import net.battaglini.fantaf1appbackend.model.RaceWeekend
 import net.battaglini.fantaf1appbackend.model.RaceWeekendRecap
+import net.battaglini.fantaf1appbackend.model.RaceWeekendResult
 import net.battaglini.fantaf1appbackend.model.openf1.OpenF1MeetingResponse.Companion.toRace
 import net.battaglini.fantaf1appbackend.model.openf1.OpenF1SessionResponse.Companion.toRaceWeekendSession
 import net.battaglini.fantaf1appbackend.repository.RaceRepository
 import net.battaglini.fantaf1appbackend.repository.RaceWeekendRecapRepository
+import net.battaglini.fantaf1appbackend.repository.RaceWeekendResultRepository
 import org.slf4j.LoggerFactory
 import org.springframework.boot.context.event.ApplicationStartedEvent
 import org.springframework.context.event.EventListener
@@ -31,6 +35,7 @@ class RaceWeekendServiceImpl(
     private val seedingProperties: SeedingProperties,
     private val genAIService: GenAIService,
     private val raceWeekendRecapRepository: RaceWeekendRecapRepository,
+    private val raceWeekendResultRepository: RaceWeekendResultRepository,
     private val clock: Clock,
     private val timeZone: TimeZone
 ) : RaceWeekendService {
@@ -62,6 +67,14 @@ class RaceWeekendServiceImpl(
         }
     }
 
+  override suspend fun getRaceWeekend(raceId: String): RaceWeekend? {
+        return raceRepository.getRaceById(raceId).firstOrNull()
+    }
+
+    override suspend fun getRaceWeekendResults(raceId: String): RaceWeekendResult? {
+        return raceWeekendResultRepository.findRaceWeekendResult(raceId = raceId)
+    }
+
     override suspend fun generateRaceRecap(raceIds: List<String>): List<RaceWeekendRecap> {
         val processedRecaps = mutableListOf<RaceWeekendRecap>()
 
@@ -79,7 +92,7 @@ class RaceWeekendServiceImpl(
                 )
 
                 raceWeekendRecapRepository.saveRaceWeekendRecap(recap)
-                processedRecaps.add(recap)
+              processedRecaps.add(recap)
 
                 LOGGER.info("Generated race recap for $raceId ($race.raceName)")
             } catch (e: Exception) {
@@ -87,7 +100,7 @@ class RaceWeekendServiceImpl(
             }
         }
 
-        return processedRecaps
+      return processedRecaps
     }
 
     private fun calculateRaceId(meetingKey: Int, year: Int): String {

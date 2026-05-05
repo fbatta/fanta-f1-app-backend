@@ -138,7 +138,13 @@ class RaceWeekendResultsCalculatorTask(
             raceWeekendResultRepository.saveRaceWeekendResult(raceWeekendResult)
             taskChannel.send(
                 ChannelConfiguration.Companion.TaskChannelMessage(
-                    TaskType.RACE_WEEKEND_RESULTS_CALCULATION_COMPLETED,
+                    TaskType.UPDATE_DRIVERS_PRICING,
+                    raceWeekendResult
+                )
+            )
+            taskChannel.send(
+                ChannelConfiguration.Companion.TaskChannelMessage(
+                    TaskType.CALCULATE_LINEUP_RESULTS,
                     raceWeekendResult
                 )
             )

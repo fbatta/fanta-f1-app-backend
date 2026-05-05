@@ -1,14 +1,18 @@
 package net.battaglini.fantaf1appbackend.controller
 
+import net.battaglini.fantaf1appbackend.exception.InvalidRequestException
+import net.battaglini.fantaf1appbackend.model.request.CalculateTeamsResultsRequest
 import net.battaglini.fantaf1appbackend.model.request.GenerateRaceRecapRequest
 import net.battaglini.fantaf1appbackend.model.request.UpdateDriversPricesRequest
 import net.battaglini.fantaf1appbackend.model.request.UpdateDriversSummariesRequest
+import net.battaglini.fantaf1appbackend.model.response.CalculateTeamsResultsResponse
 import net.battaglini.fantaf1appbackend.model.response.DriverPriceUpdateResponse
 import net.battaglini.fantaf1appbackend.model.response.DriverSummariesResponse
 import net.battaglini.fantaf1appbackend.model.response.GenerateRaceRecapResponse
 import net.battaglini.fantaf1appbackend.service.DriverPricingService
 import net.battaglini.fantaf1appbackend.service.DriverService
 import net.battaglini.fantaf1appbackend.service.RaceWeekendService
+import net.battaglini.fantaf1appbackend.service.TeamResultsService
 import org.slf4j.LoggerFactory
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -20,7 +24,8 @@ import org.springframework.web.bind.annotation.RestController
 class AdminOperationsController(
     private val driverService: DriverService,
     private val driverPricingService: DriverPricingService,
-    private val raceWeekendService: RaceWeekendService
+    private val raceWeekendService: RaceWeekendService,
+    private val teamResultsService: TeamResultsService
 ) {
     @PostMapping("/drivers/seed")
     suspend fun seedDrivers() {
@@ -60,10 +65,31 @@ class AdminOperationsController(
         }
     }
 
+    @PostMapping("/teams/results")
+    suspend fun calculateTeamsResults(@RequestBody request: CalculateTeamsResultsRequest): CalculateTeamsResultsResponse {
+        try {
+            val raceWeekend = raceWeekendService.getRaceWeekend(request.raceId)
+                ?: throw InvalidRequestException("RaceWeekend with raceId=${request.raceId} not found")
+            val raceWeekendResults = raceWeekendService.getRaceWeekendResults(request.raceId)
+                ?: throw InvalidRequestException("No results found for raceId=${request.raceId}")
+
+            val teamsResults = teamResultsService.calculateAndSaveLineupsResults(raceWeekendResults)
+
+            return CalculateTeamsResultsResponse(
+                raceId = raceWeekend.raceId,
+                raceName = raceWeekend.raceName,
+                scores = teamsResults.map { CalculateTeamsResultsResponse.Companion.TeamScore(it.key, it.value) }
+            )
+        } catch (e: Exception) {
+            LOGGER.error("Failed to calculate teams results for raceId={}", request.raceId, e)
+            throw RuntimeException(e.message)
+        }
+    }
+
     @PostMapping("/race-weekends/recap")
     suspend fun generateRaceRecaps(@RequestBody request: GenerateRaceRecapRequest): GenerateRaceRecapResponse {
         try {
-            val recaps = raceWeekendService.generateRaceRecap(request.raceIds)
+        val recaps = raceWeekendService.generateRaceRecap(request.raceIds)
             val recapEntries = recaps.map {
                 GenerateRaceRecapResponse.RecapEntry(
                     raceId = it.raceId,
