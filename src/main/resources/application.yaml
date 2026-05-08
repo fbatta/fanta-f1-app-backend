@@ -7,6 +7,14 @@ spring:
         jwt:
           issuer-uri: ${FANTAF1_AUTH_ISSUER_URI}
 
+springdoc:
+  api-docs:
+    path: /v1/api-docs
+  swagger-ui:
+    path: /docs
+  enable-spring-security: true
+  show-actuator: true
+
 logging:
   level:
     root: info

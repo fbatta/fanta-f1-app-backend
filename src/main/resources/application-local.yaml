@@ -30,3 +30,9 @@ results-calculator:
   dry-run: false
 pricing:
   dry-run: true
+
+management:
+  influx:
+    metrics:
+      export:
+        enabled: false
