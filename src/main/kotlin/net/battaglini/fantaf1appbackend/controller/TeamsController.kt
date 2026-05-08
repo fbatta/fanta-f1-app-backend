@@ -5,6 +5,7 @@ import net.battaglini.fantaf1appbackend.model.request.CalculateTeamsResultsReque
 import net.battaglini.fantaf1appbackend.model.response.CalculateTeamsResultsResponse
 import net.battaglini.fantaf1appbackend.service.RaceWeekendService
 import net.battaglini.fantaf1appbackend.service.TeamResultsService
+import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping(path = ["/teams"])
+@PreAuthorize("hasAnyRole('ADMIN', 'TEAMS_MANAGER')")
 class TeamsController(
     private val raceWeekendService: RaceWeekendService,
     private val teamResultsService: TeamResultsService

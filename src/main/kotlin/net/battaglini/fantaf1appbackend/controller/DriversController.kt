@@ -7,6 +7,7 @@ import net.battaglini.fantaf1appbackend.model.response.DriverSummariesResponse
 import net.battaglini.fantaf1appbackend.service.DriverPricingService
 import net.battaglini.fantaf1appbackend.service.DriverService
 import org.slf4j.LoggerFactory
+import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping(path = ["/drivers"])
+@PreAuthorize("hasAnyRole('ADMIN', 'DRIVERS_MANAGER')")
 class DriversController(
     private val driverService: DriverService,
     private val driverPricingService: DriverPricingService
