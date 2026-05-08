@@ -1,5 +1,5 @@
 val firebaseAdminVersion = "9.8.0"
-val kotlinxDateTimeVersion = "0.8.0-rc02-0.6.x-compat"
+val kotlinxDateTimeVersion = "0.7.1"
 val caffeineVersion = "3.2.4"
 val googleGenAIVersion = "1.52.0"
 val okhttp3Version = "5.3.2"
@@ -44,6 +44,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:$kotlinxDateTimeVersion")
     implementation("com.github.ben-manes.caffeine:caffeine:$caffeineVersion")
     implementation("com.google.genai:google-genai:$googleGenAIVersion")
+    implementation("org.springdoc:springdoc-openapi-starter-webflux-ui:3.0.3")
     runtimeOnly("io.micrometer:micrometer-registry-influx")
     testImplementation("org.springframework.boot:spring-boot-starter-actuator-test")
     testImplementation("org.springframework.boot:spring-boot-starter-quartz-test")
@@ -67,4 +68,32 @@ kotlin {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+}
+
+configurations.all {
+    fun isNonStable(version: String): Boolean {
+        val stableKeyword = listOf("RELEASE", "FINAL", "GA").any { version.uppercase().contains(it) }
+        val regex = "^[0-9,.v-]+(-r)?$".toRegex()
+        val isStable = stableKeyword || regex.matches(version)
+        return isStable.not()
+    }
+
+    fun isRC(version: String): Boolean {
+        return version.uppercase().contains("RC")
+    }
+
+    tasks.named("dependencyUpdates").configure {
+        resolutionStrategy {
+            componentSelection {
+                all {
+                    if (isNonStable(candidate.version) && !isNonStable(version.toString())) {
+                        reject("Release candidate")
+                    }
+                    if (isRC(candidate.version)) {
+                        reject("Release candidate")
+                    }
+                }
+            }
+        }
+    }
 }
