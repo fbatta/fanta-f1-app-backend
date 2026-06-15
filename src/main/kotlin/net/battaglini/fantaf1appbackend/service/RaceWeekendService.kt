@@ -1,8 +1,10 @@
 package net.battaglini.fantaf1appbackend.service
 
+import net.battaglini.fantaf1appbackend.model.CombinedDriversRaceWeekendResults
 import net.battaglini.fantaf1appbackend.model.RaceWeekend
 import net.battaglini.fantaf1appbackend.model.RaceWeekendRecap
 import net.battaglini.fantaf1appbackend.model.RaceWeekendResult
+import net.battaglini.fantaf1appbackend.model.response.RecalculateRaceWeekendResponse
 
 /**
  * Service responsible for managing race weekend data, including seeding race schedules,
@@ -14,6 +16,12 @@ interface RaceWeekendService {
      * Retrieves meetings and their associated sessions, then persists them to the repository.
      */
     suspend fun seedRaceWeekends()
+
+    /**
+     * Fetches all the drivers' results for a specific race weekend, needed to then
+     * calculate each driver's points for that weekend
+     */
+    suspend fun fetchDriversResults(raceWeekend: RaceWeekend): CombinedDriversRaceWeekendResults?
 
     /**
      * Retrieves a race weekend by its unique race ID.
@@ -37,7 +45,8 @@ interface RaceWeekendService {
      * Races that fail to process are logged and skipped; processing continues for remaining races.
      *
      * @param raceIds list of race IDs to generate recaps for
-    * @return list of successfully processed race recaps with generated content
-      */
+     * @return list of successfully processed race recaps with generated content
+     */
     suspend fun generateRaceRecap(raceIds: List<String>): List<RaceWeekendRecap>
+    suspend fun recalculateRaceWeekend(raceId: String): RecalculateRaceWeekendResponse
 }
