@@ -7,7 +7,6 @@ import io.mockk.junit5.MockKExtension
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDateTime
@@ -52,7 +51,7 @@ class RaceWeekendResultsCalculatorTaskTest {
 
     @MockK
     lateinit var raceResultsService: RaceResultsService
-
+    
     @MockK
     lateinit var raceWeekendResultRepository: RaceWeekendResultRepository
 
@@ -220,7 +219,16 @@ class RaceWeekendResultsCalculatorTaskTest {
             )
         )
 
-        coEvery { raceWeekendResultsCalculator.calculateRaceWeekendResults(any(), any(), any(), any(), any(), any()) } returns expectedResult
+        coEvery {
+            raceWeekendResultsCalculator.calculateRaceWeekendResults(
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any()
+            )
+        } returns expectedResult
 
         val result = raceWeekendResultsCalculator.calculateRaceWeekendResults(
             combinedResults.combinedPracticeResults,
@@ -283,7 +291,16 @@ class RaceWeekendResultsCalculatorTaskTest {
         )
 
         coEvery { raceWeekendService.fetchDriversResults(any()) } returns combinedResults
-        coEvery { raceWeekendResultsCalculator.calculateRaceWeekendResults(any(), any(), any(), any(), any(), any()) } returns mockk()
+        coEvery {
+            raceWeekendResultsCalculator.calculateRaceWeekendResults(
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any()
+            )
+        } returns mockk()
         coEvery { raceWeekendResultRepository.saveRaceWeekendResult(any()) } just Runs
         coEvery { taskChannel.send(any()) } just Runs
 
@@ -363,7 +380,16 @@ class RaceWeekendResultsCalculatorTaskTest {
         )
 
         coEvery { raceWeekendService.fetchDriversResults(any()) } returns combinedResults
-        coEvery { raceWeekendResultsCalculator.calculateRaceWeekendResults(any(), any(), any(), any(), any(), any()) } returns mockk()
+        coEvery {
+            raceWeekendResultsCalculator.calculateRaceWeekendResults(
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any()
+            )
+        } returns mockk()
 
         task.runTask()
 
