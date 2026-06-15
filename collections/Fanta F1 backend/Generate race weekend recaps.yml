@@ -1,0 +1,23 @@
+info:
+  name: Generate race weekend recaps
+  type: http
+  seq: 6
+
+http:
+  method: POST
+  url: "{{baseUrl}}/race-weekends/recap"
+  body:
+    type: json
+    data: |-
+      {
+        "raceIds": [
+          "00000000-0000-0507-0000-0000000007ea"
+        ]
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
