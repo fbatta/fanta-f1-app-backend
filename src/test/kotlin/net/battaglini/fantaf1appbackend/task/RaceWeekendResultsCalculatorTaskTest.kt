@@ -24,9 +24,6 @@ import net.battaglini.fantaf1appbackend.model.openf1.OpenF1MeetingResponse
 import net.battaglini.fantaf1appbackend.model.openf1.OpenF1SessionResponse
 import net.battaglini.fantaf1appbackend.repository.DriverRepository
 import net.battaglini.fantaf1appbackend.repository.RaceWeekendResultRepository
-import net.battaglini.fantaf1appbackend.service.PracticeResultsService
-import net.battaglini.fantaf1appbackend.service.QualifyingResultsService
-import net.battaglini.fantaf1appbackend.service.RaceResultsService
 import net.battaglini.fantaf1appbackend.service.RaceWeekendResultsCalculator
 import net.battaglini.fantaf1appbackend.service.RaceWeekendService
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -43,15 +40,6 @@ class RaceWeekendResultsCalculatorTaskTest {
     @MockK
     lateinit var resultsCalculatorProperties: ResultsCalculatorProperties
 
-    @MockK
-    lateinit var practiceResultsService: PracticeResultsService
-
-    @MockK
-    lateinit var qualifyingResultsService: QualifyingResultsService
-
-    @MockK
-    lateinit var raceResultsService: RaceResultsService
-    
     @MockK
     lateinit var raceWeekendResultRepository: RaceWeekendResultRepository
 

@@ -5,12 +5,12 @@ info:
 
 http:
   method: POST
-  url: "{{baseUrl}}/admin/teams/results"
+  url: "{{baseUrl}}/teams/results"
   body:
     type: json
     data: |-
       {
-        "raceId": "00000000-0000-0504-0000-0000000007ea"
+        "raceId": "00000000-0000-0506-0000-0000000007ea"
       }
   auth: inherit
 

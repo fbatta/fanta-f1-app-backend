@@ -1,8 +1,6 @@
 package net.battaglini.fantaf1appbackend.task
 
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
@@ -20,14 +18,14 @@ import net.battaglini.fantaf1appbackend.model.openf1.OpenF1MeetingResponse.Compa
 import net.battaglini.fantaf1appbackend.model.openf1.OpenF1SessionResponse.Companion.toRaceWeekendSession
 import net.battaglini.fantaf1appbackend.repository.DriverRepository
 import net.battaglini.fantaf1appbackend.repository.RaceWeekendResultRepository
-import net.battaglini.fantaf1appbackend.service.*
+import net.battaglini.fantaf1appbackend.service.RaceWeekendResultsCalculator
+import net.battaglini.fantaf1appbackend.service.RaceWeekendService
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.minutes
-import kotlin.time.Duration.Companion.seconds
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -35,9 +33,6 @@ import kotlin.uuid.Uuid
 @Component
 class RaceWeekendResultsCalculatorTask(
     private val resultsCalculatorProperties: ResultsCalculatorProperties,
-    private val practiceResultsService: PracticeResultsService,
-    private val qualifyingResultsService: QualifyingResultsService,
-    private val raceResultsService: RaceResultsService,
     private val raceWeekendResultRepository: RaceWeekendResultRepository,
     private val openF1Client: OpenF1Client,
     private val driverRepository: DriverRepository,
@@ -107,12 +102,6 @@ class RaceWeekendResultsCalculatorTask(
             it.toRaceWeekendSession(sessionId = generateSessionId(meeting.meetingKey, it.sessionKey))
         }.toList()
         return meeting.toRace(raceId = generateRaceId(meeting.meetingKey, meeting.year), sessions = sessions)
-    }
-
-    private suspend fun <T> fetchResults(fetcher: suspend () -> Flow<T>): List<T> {
-        val results = fetcher().toList()
-        delay(2.seconds)
-        return results
     }
 
     private suspend fun saveAndNotify(raceWeekendResult: RaceWeekendResult) {
