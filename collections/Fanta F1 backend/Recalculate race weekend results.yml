@@ -1,11 +1,11 @@
 info:
-  name: Calculate race weekend teams results
+  name: Recalculate race weekend results
   type: http
-  seq: 5
+  seq: 7
 
 http:
   method: POST
-  url: "{{baseUrl}}/teams/results"
+  url: "{{baseUrl}}/race-weekends/recalculate"
   body:
     type: json
     data: |-

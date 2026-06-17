@@ -1,15 +1,16 @@
-val firebaseAdminVersion = "9.8.0"
+val firebaseAdminVersion = "9.9.0"
 val kotlinxDateTimeVersion = "0.7.1"
 val caffeineVersion = "3.2.4"
-val googleGenAIVersion = "1.52.0"
-val okhttp3Version = "5.3.2"
+val googleGenAIVersion = "1.58.0"
+val okhttp3Version = "5.4.0"
 val mockkVersion = "1.14.9"
-val springMockkVersion = "4.0.2"
+val springMockkVersion = "5.0.1"
+val springDocVersion = "3.0.3"
 
 plugins {
-    kotlin("jvm") version "2.3.20"
-    kotlin("plugin.spring") version "2.3.20"
-    id("org.springframework.boot") version "4.0.3"
+    kotlin("jvm") version "2.4.0"
+    kotlin("plugin.spring") version "2.4.0"
+    id("org.springframework.boot") version "4.1.0"
     id("io.spring.dependency-management") version "1.1.7"
     id("com.github.ben-manes.versions") version "0.54.0"
 }
@@ -44,7 +45,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:$kotlinxDateTimeVersion")
     implementation("com.github.ben-manes.caffeine:caffeine:$caffeineVersion")
     implementation("com.google.genai:google-genai:$googleGenAIVersion")
-    implementation("org.springdoc:springdoc-openapi-starter-webflux-ui:3.0.3")
+    implementation("org.springdoc:springdoc-openapi-starter-webflux-ui:$springDocVersion")
     runtimeOnly("io.micrometer:micrometer-registry-influx")
     testImplementation("org.springframework.boot:spring-boot-starter-actuator-test")
     testImplementation("org.springframework.boot:spring-boot-starter-quartz-test")

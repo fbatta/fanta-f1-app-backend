@@ -34,6 +34,7 @@ class RaceWeekendResultRepository(
         }
     }
 
+
     suspend fun findRaceWeekendResult(raceId: String? = null, openF1MeetingKey: Int? = null): RaceWeekendResult? {
         if (raceId == null && openF1MeetingKey == null) {
             throw RaceWeekendResultRepositoryException("One of raceId or openF1MeetingKey are required")

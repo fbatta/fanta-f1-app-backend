@@ -1,16 +1,18 @@
 info:
-  name: Calculate race weekend teams results
+  name: Generate race weekend recaps
   type: http
-  seq: 5
+  seq: 6
 
 http:
   method: POST
-  url: "{{baseUrl}}/teams/results"
+  url: "{{baseUrl}}/race-weekends/recap"
   body:
     type: json
     data: |-
       {
-        "raceId": "00000000-0000-0506-0000-0000000007ea"
+        "raceIds": [
+          "00000000-0000-0507-0000-0000000007ea"
+        ]
       }
   auth: inherit
 

@@ -51,6 +51,18 @@ class RaceWeekendServiceTest {
     @MockK
     lateinit var raceWeekendResultRepository: RaceWeekendResultRepository
 
+    @MockK
+    lateinit var practiceResultsService: PracticeResultsService
+
+    @MockK
+    lateinit var qualifyingResultsService: QualifyingResultsService
+
+    @MockK
+    lateinit var raceResultsService: RaceResultsService
+
+    @MockK
+    lateinit var raceWeekendResultsCalculator: RaceWeekendResultsCalculator
+
     val timeZone = TimeZone.UTC
 
     @InjectMockKs

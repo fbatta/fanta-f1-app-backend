@@ -1,9 +1,12 @@
 package net.battaglini.fantaf1appbackend.controller
 
+import net.battaglini.fantaf1appbackend.model.request.RecalculateRaceWeekendRequest
+import net.battaglini.fantaf1appbackend.model.response.RecalculateRaceWeekendResponse
 import net.battaglini.fantaf1appbackend.model.request.GenerateRaceRecapRequest
 import net.battaglini.fantaf1appbackend.model.response.GenerateRaceRecapResponse
 import net.battaglini.fantaf1appbackend.service.RaceWeekendService
 import org.slf4j.LoggerFactory
+import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
@@ -39,7 +42,19 @@ class RaceWeekendsController(
                 recaps = recapEntries
             )
         } catch (e: Exception) {
-            LOGGER.error("Failed to generate race recaps", e)
+            LOGGER.error("Failed to generate race recap", e)
+            throw RuntimeException(e.message)
+        }
+    }
+
+    @PostMapping("/recalculate")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DRIVERS_MANAGER')")
+    suspend fun recalculateRaceWeekend(@RequestBody request: RecalculateRaceWeekendRequest): RecalculateRaceWeekendResponse {
+        try {
+            val response = raceWeekendService.recalculateRaceWeekend(request.raceId)
+            return response
+        } catch (e: Exception) {
+            LOGGER.error("Failed to recalculate race weekend for raceId={}", request.raceId, e)
             throw RuntimeException(e.message)
         }
     }

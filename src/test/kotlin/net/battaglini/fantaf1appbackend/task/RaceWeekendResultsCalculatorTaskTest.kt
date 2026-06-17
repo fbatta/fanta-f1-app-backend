@@ -7,7 +7,6 @@ import io.mockk.junit5.MockKExtension
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDateTime
@@ -25,9 +24,8 @@ import net.battaglini.fantaf1appbackend.model.openf1.OpenF1MeetingResponse
 import net.battaglini.fantaf1appbackend.model.openf1.OpenF1SessionResponse
 import net.battaglini.fantaf1appbackend.repository.DriverRepository
 import net.battaglini.fantaf1appbackend.repository.RaceWeekendResultRepository
-import net.battaglini.fantaf1appbackend.service.PracticeResultsService
-import net.battaglini.fantaf1appbackend.service.QualifyingResultsService
-import net.battaglini.fantaf1appbackend.service.RaceResultsService
+import net.battaglini.fantaf1appbackend.service.RaceWeekendResultsCalculator
+import net.battaglini.fantaf1appbackend.service.RaceWeekendService
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -41,15 +39,6 @@ class RaceWeekendResultsCalculatorTaskTest {
 
     @MockK
     lateinit var resultsCalculatorProperties: ResultsCalculatorProperties
-
-    @MockK
-    lateinit var practiceResultsService: PracticeResultsService
-
-    @MockK
-    lateinit var qualifyingResultsService: QualifyingResultsService
-
-    @MockK
-    lateinit var raceResultsService: RaceResultsService
 
     @MockK
     lateinit var raceWeekendResultRepository: RaceWeekendResultRepository
@@ -68,6 +57,12 @@ class RaceWeekendResultsCalculatorTaskTest {
 
     @MockK(relaxed = true)
     lateinit var timeZone: TimeZone
+
+    @MockK
+    lateinit var raceWeekendResultsCalculator: RaceWeekendResultsCalculator
+
+    @MockK
+    lateinit var raceWeekendService: RaceWeekendService
 
     @InjectMockKs
     lateinit var task: RaceWeekendResultsCalculatorTask
@@ -190,12 +185,45 @@ class RaceWeekendResultsCalculatorTaskTest {
             createRaceResult("HAM", 2)
         )
 
-        val result = task.calculateRaceWeekendResults(
-            practiceResults,
-            qualifyingResults,
-            emptyList(),
-            raceResults,
-            emptyList(),
+        val combinedResults = CombinedDriversRaceWeekendResults(
+            raceId = "race1",
+            combinedPracticeResults = practiceResults,
+            qualifyingResults = qualifyingResults,
+            sprintQualifyingResults = emptyList(),
+            raceResults = raceResults,
+            sprintRaceResults = emptyList()
+        )
+
+        val expectedResult = RaceWeekendResult(
+            raceId = "race1",
+            raceName = "Race 1",
+            openF1MeetingKey = 1,
+            createdAt = Instant.fromEpochMilliseconds(0),
+            updatedAt = Instant.fromEpochMilliseconds(0),
+            version = 1,
+            results = listOf(
+                RaceWeekendResult.Companion.Result("id-VER", 1, "VER", 20.0),
+                RaceWeekendResult.Companion.Result("id-HAM", 1, "HAM", 17.0)
+            )
+        )
+
+        coEvery {
+            raceWeekendResultsCalculator.calculateRaceWeekendResults(
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any()
+            )
+        } returns expectedResult
+
+        val result = raceWeekendResultsCalculator.calculateRaceWeekendResults(
+            combinedResults.combinedPracticeResults,
+            combinedResults.qualifyingResults,
+            combinedResults.sprintQualifyingResults,
+            combinedResults.raceResults,
+            combinedResults.sprintRaceResults,
             raceWeekend
         )
 
@@ -235,22 +263,32 @@ class RaceWeekendResultsCalculatorTaskTest {
         val ver = createDriver("VER")
         coEvery { driverRepository.getDrivers() } returns flowOf(ver)
 
-        coEvery { practiceResultsService.getDriversResultsForCombinedPractice(any()) } returns flowOf(
-            createPracticeResult("VER", 1.0.toDuration(DurationUnit.SECONDS), "dummy")
+        val combinedResults = CombinedDriversRaceWeekendResults(
+            raceId = "race1",
+            combinedPracticeResults = listOf(
+                createPracticeResult("VER", 1.0.toDuration(DurationUnit.SECONDS), "dummy")
+            ),
+            qualifyingResults = listOf(
+                createQualifyingResult("VER", 1, "dummy")
+            ),
+            sprintQualifyingResults = emptyList(),
+            raceResults = listOf(
+                createRaceResult("VER", 1, "dummy")
+            ),
+            sprintRaceResults = emptyList()
         )
-        coEvery { qualifyingResultsService.getDriversResultsForQualifying(any(), false) } returns flowOf(
-            createQualifyingResult("VER", 1, "dummy")
-        )
-        coEvery { qualifyingResultsService.getDriversResultsForQualifying(any(), true) } returns flowOf()
-        coEvery { raceResultsService.getResultsForRace(any(), false) } returns flowOf(
-            createRaceResult(
-                "VER",
-                1,
-                "dummy"
-            )
-        )
-        coEvery { raceResultsService.getResultsForRace(any(), true) } returns flowOf()
 
+        coEvery { raceWeekendService.fetchDriversResults(any()) } returns combinedResults
+        coEvery {
+            raceWeekendResultsCalculator.calculateRaceWeekendResults(
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any()
+            )
+        } returns mockk()
         coEvery { raceWeekendResultRepository.saveRaceWeekendResult(any()) } just Runs
         coEvery { taskChannel.send(any()) } just Runs
 
@@ -314,19 +352,32 @@ class RaceWeekendResultsCalculatorTaskTest {
         val ver = createDriver("VER")
         coEvery { driverRepository.getDrivers() } returns flowOf(ver)
 
-        coEvery { practiceResultsService.getDriversResultsForCombinedPractice(any()) } returns flowOf(
-            createPracticeResult("VER", 1.0.toDuration(DurationUnit.SECONDS), "dummy")
+        val combinedResults = CombinedDriversRaceWeekendResults(
+            raceId = "race1",
+            combinedPracticeResults = listOf(
+                createPracticeResult("VER", 1.0.toDuration(DurationUnit.SECONDS), "dummy")
+            ),
+            qualifyingResults = listOf(
+                createQualifyingResult("VER", 1, "dummy")
+            ),
+            sprintQualifyingResults = emptyList(),
+            raceResults = listOf(
+                createRaceResult("VER", 1, "dummy")
+            ),
+            sprintRaceResults = emptyList()
         )
-        coEvery { qualifyingResultsService.getDriversResultsForQualifying(any(), false) } returns flowOf(
-            createQualifyingResult("VER", 1, "dummy")
-        )
-        coEvery { raceResultsService.getResultsForRace(any(), false) } returns flowOf(
-            createRaceResult(
-                "VER",
-                1,
-                "dummy"
+
+        coEvery { raceWeekendService.fetchDriversResults(any()) } returns combinedResults
+        coEvery {
+            raceWeekendResultsCalculator.calculateRaceWeekendResults(
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any()
             )
-        )
+        } returns mockk()
 
         task.runTask()
 
@@ -346,13 +397,7 @@ class RaceWeekendResultsCalculatorTaskTest {
         every { openF1Client.getSessions(1) } returns flowOf()
 
         // Missing race results
-        coEvery { practiceResultsService.getDriversResultsForCombinedPractice(any()) } returns flowOf(
-            createPracticeResult("VER", 1.0.toDuration(DurationUnit.SECONDS))
-        )
-        coEvery { qualifyingResultsService.getDriversResultsForQualifying(any(), false) } returns flowOf(
-            createQualifyingResult("VER", 1)
-        )
-        coEvery { raceResultsService.getResultsForRace(any(), any()) } returns emptyFlow()
+        coEvery { raceWeekendService.fetchDriversResults(any()) } returns null
 
         task.runTask()
 
