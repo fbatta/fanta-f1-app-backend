@@ -25,6 +25,10 @@ jolpica:
 open-f1:
   base-url: https://api.openf1.org
   api-version: v1
+  rate-limit:
+    max-rate-per-second: 3
+    max-rate-per-minute: 30
+    max-burst-per-minute: 30
 
 notifications:
   lineup:

@@ -6,6 +6,7 @@ val okhttp3Version = "5.4.0"
 val mockkVersion = "1.14.9"
 val springMockkVersion = "5.0.1"
 val springDocVersion = "3.0.3"
+val krateVersion = "1.0.3"
 
 plugins {
     kotlin("jvm") version "2.4.0"
@@ -46,6 +47,7 @@ dependencies {
     implementation("com.github.ben-manes.caffeine:caffeine:$caffeineVersion")
     implementation("com.google.genai:google-genai:$googleGenAIVersion")
     implementation("org.springdoc:springdoc-openapi-starter-webflux-ui:$springDocVersion")
+    implementation("io.github.lpicanco:krate-core:$krateVersion")
     runtimeOnly("io.micrometer:micrometer-registry-influx")
     testImplementation("org.springframework.boot:spring-boot-starter-actuator-test")
     testImplementation("org.springframework.boot:spring-boot-starter-quartz-test")

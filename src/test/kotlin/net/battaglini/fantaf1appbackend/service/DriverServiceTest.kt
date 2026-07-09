@@ -134,12 +134,12 @@ class DriverServiceTest {
     fun `onStart should call seedDrivers when drivers seeding is enabled`() = runTest {
         every { seedingProperties.drivers } returns true
         val openF1Driver = createOpenF1Driver()
-        every { openF1Client.getDrivers(sessionKeys = listOf("latest")) } returns flowOf(openF1Driver)
+        coEvery { openF1Client.getDrivers(sessionKeys = listOf("latest")) } returns flowOf(openF1Driver)
         coEvery { driverRepository.createOrUpdateDrivers(any()) } just Runs
 
         driverService.onStart()
 
-        verify { openF1Client.getDrivers(sessionKeys = listOf("latest")) }
+        coVerify { openF1Client.getDrivers(sessionKeys = listOf("latest")) }
         coVerify { driverRepository.createOrUpdateDrivers(any()) }
     }
 
@@ -149,14 +149,14 @@ class DriverServiceTest {
 
         driverService.onStart()
 
-        verify(exactly = 0) { openF1Client.getDrivers(any(), any(), any(), any()) }
+        coVerify(exactly = 0) { openF1Client.getDrivers(any(), any(), any(), any()) }
         coVerify(exactly = 0) { driverRepository.createOrUpdateDrivers(any()) }
     }
 
     @Test
     fun `seedDrivers should fetch drivers from client and save to repository`() = runTest {
         val openF1Driver = createOpenF1Driver()
-        every { openF1Client.getDrivers(sessionKeys = listOf("latest")) } returns flowOf(openF1Driver)
+        coEvery { openF1Client.getDrivers(sessionKeys = listOf("latest")) } returns flowOf(openF1Driver)
         coEvery { driverRepository.createOrUpdateDrivers(any()) } just Runs
 
         driverService.seedDrivers()
@@ -173,7 +173,7 @@ class DriverServiceTest {
 
     @Test
     fun `seedDrivers should handle exceptions gracefully without throwing`() = runTest {
-        every { openF1Client.getDrivers(sessionKeys = listOf("latest")) } throws RuntimeException("API Error")
+        coEvery { openF1Client.getDrivers(sessionKeys = listOf("latest")) } throws RuntimeException("API Error")
 
         driverService.seedDrivers()
 
@@ -242,7 +242,7 @@ class DriverServiceTest {
         val openF1Driver1 = createOpenF1Driver(acronym = "VER")
         val openF1Driver2 = createOpenF1Driver(acronym = "LEC")
 
-        every { openF1Client.getDrivers(sessionKeys = listOf("1", "2")) } returns flowOf(openF1Driver1, openF1Driver2)
+        coEvery { openF1Client.getDrivers(sessionKeys = listOf("1", "2")) } returns flowOf(openF1Driver1, openF1Driver2)
 
         val driver1 = createDriver(id = "1", acronym = "VER")
         val driver2 = createDriver(id = "2", acronym = "HAM") // In repo, but not returned by session API

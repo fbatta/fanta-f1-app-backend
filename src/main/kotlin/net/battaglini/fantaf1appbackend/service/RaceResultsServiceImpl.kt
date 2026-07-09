@@ -1,6 +1,5 @@
 package net.battaglini.fantaf1appbackend.service
 
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.map
@@ -67,14 +66,13 @@ class RaceResultsServiceImpl(
     ): DriverRaceResult {
         var fastestLap = 9_999.0
         var speedAtTrap = 0.0
-        openF1Client.getLaps(sessionKey = sessionKey.toString(), driverNumber = driver.driverNumber)
-            .collect { lap ->
-                if (lap.lapDuration != null && lap.lapDuration < fastestLap)
-                    fastestLap = lap.lapDuration
-                if (lap.speedTrapSpeed != null && lap.speedTrapSpeed > speedAtTrap)
-                    speedAtTrap = lap.speedTrapSpeed
-            }
-        delay(2000.toDuration(DurationUnit.MILLISECONDS))
+            openF1Client.getLaps(sessionKey = sessionKey.toString(), driverNumber = driver.driverNumber)
+                .collect { lap ->
+                    if (lap.lapDuration != null && lap.lapDuration < fastestLap)
+                        fastestLap = lap.lapDuration
+                    if (lap.speedTrapSpeed != null && lap.speedTrapSpeed > speedAtTrap)
+                        speedAtTrap = lap.speedTrapSpeed
+                }
         val startPosition = startingGrid.firstOrNull { it.driverNumber == driver.driverNumber }?.position
         val result = results.first { it.driverNumber == driver.driverNumber }
 

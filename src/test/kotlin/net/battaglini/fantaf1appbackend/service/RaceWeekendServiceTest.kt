@@ -137,9 +137,8 @@ class RaceWeekendServiceTest {
             createSessionResponse(sessionKey = 1003, meetingKey = 100, sessionName = OpenF1SessionName.RACE)
         )
 
-        // getRaces and getSessions are regular (non-suspend) functions — use every
-        every { openF1Client.getRaces(year = 2025) } returns flowOf(meeting)
-        every { openF1Client.getSessions(meetingKey = 100) } returns flowOf(sessions[0], sessions[1], sessions[2])
+        coEvery { openF1Client.getRaces(year = 2025) } returns flowOf(meeting)
+        coEvery { openF1Client.getSessions(meetingKey = 100) } returns flowOf(sessions[0], sessions[1], sessions[2])
         coEvery { raceRepository.createOrUpdateRaces(any()) } just Runs
 
         raceWeekendService.seedRaceWeekends()
@@ -159,9 +158,8 @@ class RaceWeekendServiceTest {
         every { clock.now() } returns Instant.parse("2025-06-01T12:00:00Z")
 
         val meeting = createMeetingResponse(meetingKey = 100, year = 2025)
-        // getRaces is a regular function — use every, match with specific year
-        every { openF1Client.getRaces(year = any()) } returns flowOf(meeting)
-        every { openF1Client.getSessions(meetingKey = 100) } returns emptyFlow()
+        coEvery { openF1Client.getRaces(year = any()) } returns flowOf(meeting)
+        coEvery { openF1Client.getSessions(meetingKey = 100) } returns emptyFlow()
         coEvery { raceRepository.createOrUpdateRaces(any()) } just Runs
 
         raceWeekendService.seedRaceWeekends()
@@ -175,8 +173,8 @@ class RaceWeekendServiceTest {
         every { clock.now() } returns Instant.parse("2025-06-01T12:00:00Z")
 
         val meeting = createMeetingResponse(meetingKey = 100, year = 2025)
-        every { openF1Client.getRaces(year = 2025) } returns flowOf(meeting)
-        every { openF1Client.getSessions(meetingKey = 100) } returns emptyFlow()
+        coEvery { openF1Client.getRaces(year = 2025) } returns flowOf(meeting)
+        coEvery { openF1Client.getSessions(meetingKey = 100) } returns emptyFlow()
         coEvery { raceRepository.createOrUpdateRaces(any()) } just Runs
 
         raceWeekendService.seedRaceWeekends()
@@ -194,7 +192,7 @@ class RaceWeekendServiceTest {
     fun `seedRaceWeekends should catch exceptions and not rethrow`() = runTest {
         every { clock.now() } returns Instant.parse("2025-06-01T12:00:00Z")
 
-        every { openF1Client.getRaces(year = any()) } throws RuntimeException("API down")
+        coEvery { openF1Client.getRaces(year = any()) } throws RuntimeException("API down")
 
         // Should not throw — exception is caught internally
         raceWeekendService.seedRaceWeekends()
@@ -206,7 +204,7 @@ class RaceWeekendServiceTest {
     fun `seedRaceWeekends should use correct year from Clock`() = runTest {
         every { clock.now() } returns Instant.parse("2026-01-15T00:00:00Z")
 
-        every { openF1Client.getRaces(year = 2026) } returns emptyFlow()
+        coEvery { openF1Client.getRaces(year = 2026) } returns emptyFlow()
         coEvery { raceRepository.createOrUpdateRaces(any()) } just Runs
 
         raceWeekendService.seedRaceWeekends()
@@ -221,9 +219,9 @@ class RaceWeekendServiceTest {
         val meeting1 = createMeetingResponse(meetingKey = 100, year = 2025)
         val meeting2 = createMeetingResponse(meetingKey = 200, year = 2025)
 
-        every { openF1Client.getRaces(year = 2025) } returns flowOf(meeting1, meeting2)
-        every { openF1Client.getSessions(meetingKey = 100) } returns emptyFlow()
-        every { openF1Client.getSessions(meetingKey = 200) } returns emptyFlow()
+        coEvery { openF1Client.getRaces(year = 2025) } returns flowOf(meeting1, meeting2)
+        coEvery { openF1Client.getSessions(meetingKey = 100) } returns emptyFlow()
+        coEvery { openF1Client.getSessions(meetingKey = 200) } returns emptyFlow()
         coEvery { raceRepository.createOrUpdateRaces(any()) } just Runs
 
         raceWeekendService.seedRaceWeekends()
@@ -238,7 +236,7 @@ class RaceWeekendServiceTest {
 
         // Must match year parameter explicitly since getRaces(meetingKey, year, circuitKey)
         // and the service calls getRaces(year = year) — not getRaces(meetingKey = any)
-        every { openF1Client.getRaces(year = any()) } returns emptyFlow()
+        coEvery { openF1Client.getRaces(year = any()) } returns emptyFlow()
         coEvery { raceRepository.createOrUpdateRaces(any()) } just Runs
 
         raceWeekendService.seedRaceWeekends()
@@ -257,8 +255,8 @@ class RaceWeekendServiceTest {
         every { clock.now() } returns Instant.parse("2025-06-01T12:00:00Z")
 
         val meeting = createMeetingResponse(meetingKey = 100, year = 2025)
-        every { openF1Client.getRaces(year = any()) } returns flowOf(meeting)
-        every { openF1Client.getSessions(meetingKey = 100) } returns emptyFlow()
+        coEvery { openF1Client.getRaces(year = any()) } returns flowOf(meeting)
+        coEvery { openF1Client.getSessions(meetingKey = 100) } returns emptyFlow()
         coEvery { raceRepository.createOrUpdateRaces(any()) } just Runs
 
         raceWeekendService.seedRaceWeekends()
