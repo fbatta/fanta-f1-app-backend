@@ -6,7 +6,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class OpenF1LapResponse(
     @JsonProperty("driver_number")
-    val driverNumber: Int,
+    val driverNumber: Int = 0,
     @JsonProperty("duration_sector_1")
     val durationSector1: Double?,
     @JsonProperty("duration_sector_2")

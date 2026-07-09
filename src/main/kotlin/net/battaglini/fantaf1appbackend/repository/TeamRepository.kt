@@ -48,6 +48,16 @@ class TeamRepository(
         return querySnapshot.map { team -> objectMapper.convertValue(team.data, Team::class.java) }.asFlow()
     }
 
+    suspend fun getTeamByTeamId(teamId: String): Team? {
+        val snapshot = withContext(Dispatchers.IO) {
+            firestore.collection(collectionName).document(teamId).get().get()
+        }
+        if (!snapshot.exists()) {
+            return null
+        }
+        return objectMapper.convertValue(snapshot.data, Team::class.java)
+    }
+
     fun updateTeamInTransaction(team: Team, transaction: Transaction) {
         transaction.update(
             firestore.collection(collectionName).document(team.teamId),

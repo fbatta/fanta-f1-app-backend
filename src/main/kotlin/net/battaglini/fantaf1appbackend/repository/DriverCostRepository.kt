@@ -33,6 +33,16 @@ class DriverCostRepository(
         }
     }
 
+    suspend fun getDriverCostByDriverId(driverId: String): DriverCost? {
+        val snapshot = withContext(Dispatchers.IO) {
+            firestore.collection(COLLECTION_NAME).document(driverId).get().get()
+        }
+        if (!snapshot.exists()) {
+            return null
+        }
+        return objectMapper.convertValue(snapshot.data, DriverCost::class.java)
+    }
+
     companion object {
         private const val COLLECTION_NAME = "driver_costs"
     }

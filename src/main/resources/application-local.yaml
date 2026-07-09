@@ -29,7 +29,7 @@ results-calculator:
   enable: true
   dry-run: false
 pricing:
-  dry-run: true
+  dry-run: false
 
 management:
   influx:

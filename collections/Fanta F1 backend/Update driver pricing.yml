@@ -5,7 +5,7 @@ info:
 
 http:
   method: POST
-  url: "{{baseUrl}}/admin/drivers/prices"
+  url: "{{baseUrl}}/drivers/price"
   body:
     type: json
     data: |-
