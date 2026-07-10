@@ -6,7 +6,6 @@ import io.mockk.impl.annotations.MockK
 import io.mockk.junit5.MockKExtension
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDateTime
@@ -30,7 +29,11 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
-import kotlin.time.*
+import kotlin.time.Clock
+import kotlin.time.Duration
+import kotlin.time.Instant
+import kotlin.time.toDuration
+import kotlin.time.DurationUnit
 import kotlin.uuid.ExperimentalUuidApi
 
 @OptIn(ExperimentalUuidApi::class, ExperimentalCoroutinesApi::class)
@@ -72,10 +75,6 @@ class RaceWeekendResultsCalculatorTaskTest {
         clearAllMocks()
         every { resultsCalculatorProperties.enable } returns true
         every { resultsCalculatorProperties.dryRun } returns false
-
-        mockkStatic("kotlinx.coroutines.DelayKt")
-        coEvery { delay(any<Long>()) } just Runs
-        coEvery { delay(any<kotlin.time.Duration>()) } just Runs
     }
 
     private fun createDriver(acronym: String) = Driver(
@@ -245,7 +244,7 @@ class RaceWeekendResultsCalculatorTaskTest {
 
         val meeting = createMeeting(1, year, LocalDateTime(year, 3, 20, 10, 0, 0))
 
-        every { openF1Client.getRaces(meetingKey = any(), year = any(), circuitKey = any()) } returns flowOf(meeting)
+        coEvery { openF1Client.getRaces(meetingKey = any(), year = any(), circuitKey = any()) } returns flowOf(meeting)
         coEvery { raceWeekendResultRepository.findRaceWeekendResult(openF1MeetingKey = 1) } returns null
 
         val sessionResponse = OpenF1SessionResponse(
@@ -258,7 +257,7 @@ class RaceWeekendResultsCalculatorTaskTest {
             gmtOffset = UtcOffset.ZERO,
             year = year
         )
-        every { openF1Client.getSessions(1) } returns flowOf(sessionResponse)
+        coEvery { openF1Client.getSessions(1) } returns flowOf(sessionResponse)
 
         val ver = createDriver("VER")
         coEvery { driverRepository.getDrivers() } returns flowOf(ver)
@@ -315,7 +314,7 @@ class RaceWeekendResultsCalculatorTaskTest {
 
         val meeting = createMeeting(1, year, LocalDateTime(year, 3, 10, 12, 0, 0))
 
-        every { openF1Client.getRaces(meetingKey = any(), year = any(), circuitKey = any()) } returns flowOf(meeting)
+        coEvery { openF1Client.getRaces(meetingKey = any(), year = any(), circuitKey = any()) } returns flowOf(meeting)
 
         task.runTask()
 
@@ -329,7 +328,7 @@ class RaceWeekendResultsCalculatorTaskTest {
         val year = 2024
         val meeting = createMeeting(1, year, LocalDateTime(year, 3, 20, 10, 0, 0))
 
-        every { openF1Client.getRaces(meetingKey = any(), year = any(), circuitKey = any()) } returns flowOf(meeting)
+        coEvery { openF1Client.getRaces(meetingKey = any(), year = any(), circuitKey = any()) } returns flowOf(meeting)
         coEvery { raceWeekendResultRepository.findRaceWeekendResult(openF1MeetingKey = 1) } returns mockk()
 
         task.runTask()
@@ -345,9 +344,9 @@ class RaceWeekendResultsCalculatorTaskTest {
         val year = 2024
         val meeting = createMeeting(1, year, LocalDateTime(year, 3, 20, 10, 0, 0))
 
-        every { openF1Client.getRaces(any(), any(), any()) } returns flowOf(meeting)
+        coEvery { openF1Client.getRaces(any(), any(), any()) } returns flowOf(meeting)
         coEvery { raceWeekendResultRepository.findRaceWeekendResult(openF1MeetingKey = 1) } returns null
-        every { openF1Client.getSessions(1) } returns flowOf()
+        coEvery { openF1Client.getSessions(1) } returns flowOf()
 
         val ver = createDriver("VER")
         coEvery { driverRepository.getDrivers() } returns flowOf(ver)
@@ -392,9 +391,9 @@ class RaceWeekendResultsCalculatorTaskTest {
         val year = 2024
         val meeting = createMeeting(1, year, LocalDateTime(year, 3, 20, 10, 0, 0))
 
-        every { openF1Client.getRaces(any(), any(), any()) } returns flowOf(meeting)
+        coEvery { openF1Client.getRaces(any(), any(), any()) } returns flowOf(meeting)
         coEvery { raceWeekendResultRepository.findRaceWeekendResult(openF1MeetingKey = 1) } returns null
-        every { openF1Client.getSessions(1) } returns flowOf()
+        coEvery { openF1Client.getSessions(1) } returns flowOf()
 
         // Missing race results
         coEvery { raceWeekendService.fetchDriversResults(any()) } returns null

@@ -2,6 +2,8 @@ package net.battaglini.fantaf1appbackend.client
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
 import net.battaglini.fantaf1appbackend.configuration.CacheConfiguration
 import net.battaglini.fantaf1appbackend.configuration.CacheConfiguration.Companion.MEETING_SESSIONS_CACHE
 import net.battaglini.fantaf1appbackend.configuration.OpenF1ApiProperties
@@ -27,11 +29,17 @@ import org.springframework.web.util.UriBuilder
  */
 @Component
 class OpenF1Client(
+    private val rateLimiter: OpenF1RateLimiter,
     openF1ApiProperties: OpenF1ApiProperties
 ) {
     private val webClient: WebClient = WebClient.builder()
         .baseUrl("${openF1ApiProperties.baseUrl}/${openF1ApiProperties.apiVersion}")
         .build()
+
+    private suspend fun <T : Any> rateLimited(block: suspend () -> Flow<T>): Flow<T> {
+        rateLimiter.acquire()
+        return flow { emitAll(block()) }
+    }
 
     /**
      * Retrieves a list of drivers based on the provided criteria.
@@ -44,7 +52,7 @@ class OpenF1Client(
      * @throws OpenF1ClientRequestException If none of the parameters are provided.
      */
     @Cacheable(CacheConfiguration.DRIVERS_CACHE)
-    fun getDrivers(
+    suspend fun getDrivers(
         sessionKeys: List<String> = emptyList(),
         meetingKey: Int? = null,
         acronym: String? = null,
@@ -54,17 +62,19 @@ class OpenF1Client(
             throw OpenF1ClientRequestException("One of sessionKeys, meetingKey, acronym or driverNumber are required")
         }
 
-        return webClient
-            .get()
-            .uri { uriBuilder ->
-                uriBuilder.path("/drivers")
-                addMeetingAndSessionKeyParams(uriBuilder, meetingKey, sessionKeys)
-                acronym?.also { acronym -> uriBuilder.queryParam("name_acronym", acronym) }
-                driverNumber?.also { driverNumber -> uriBuilder.queryParam("driver_number", driverNumber) }
+        return rateLimited {
+            webClient
+                .get()
+                .uri { uriBuilder ->
+                    uriBuilder.path("/drivers")
+                    addMeetingAndSessionKeyParams(uriBuilder, meetingKey, sessionKeys)
+                    acronym?.also { acronym -> uriBuilder.queryParam("name_acronym", acronym) }
+                    driverNumber?.also { driverNumber -> uriBuilder.queryParam("driver_number", driverNumber) }
 
-                uriBuilder.build()
-            }
-            .exchangeToFlow { it.bodyToFlow() }
+                    uriBuilder.build()
+                }
+                .exchangeToFlow { it.bodyToFlow() }
+        }
     }
 
     /**
@@ -77,7 +87,7 @@ class OpenF1Client(
      * @throws OpenF1ClientRequestException If none of the parameters are provided.
      */
     @Cacheable(CacheConfiguration.MEETINGS_CACHE_NAME)
-    fun getRaces(
+    suspend fun getRaces(
         meetingKey: Int? = null,
         year: Int? = null,
         circuitKey: Int? = null
@@ -86,17 +96,19 @@ class OpenF1Client(
             throw OpenF1ClientRequestException("One of meetingKey, year or circuitKey are required")
         }
 
-        return webClient
-            .get()
-            .uri { uriBuilder ->
-                uriBuilder.path("/meetings")
-                addMeetingAndSessionKeyParams(uriBuilder, meetingKey, emptyList())
-                year?.also { year -> uriBuilder.queryParam("year", year) }
-                circuitKey?.also { circuitKey -> uriBuilder.queryParam("circuit_key", circuitKey) }
+        return rateLimited {
+            webClient
+                .get()
+                .uri { uriBuilder ->
+                    uriBuilder.path("/meetings")
+                    addMeetingAndSessionKeyParams(uriBuilder, meetingKey, emptyList())
+                    year?.also { year -> uriBuilder.queryParam("year", year) }
+                    circuitKey?.also { circuitKey -> uriBuilder.queryParam("circuit_key", circuitKey) }
 
-                uriBuilder.build()
-            }
-            .exchangeToFlow { it.bodyToFlow() }
+                    uriBuilder.build()
+                }
+                .exchangeToFlow { it.bodyToFlow() }
+        }
     }
 
     /**
@@ -110,7 +122,7 @@ class OpenF1Client(
      * @throws OpenF1ClientRequestException If none of the parameters are provided.
      */
     @Cacheable(MEETING_SESSIONS_CACHE)
-    fun getSessions(
+    suspend fun getSessions(
         meetingKey: Int? = null,
         sessionKey: String? = null,
         sessionName: OpenF1SessionName? = null,
@@ -120,17 +132,19 @@ class OpenF1Client(
             throw OpenF1ClientRequestException("One of meetingKey, sessionKey, year or sessionName are required")
         }
 
-        return webClient
-            .get()
-            .uri { uriBuilder ->
-                uriBuilder.path("/sessions")
-                addMeetingAndSessionKeyParams(uriBuilder, meetingKey, sessionKey?.let { listOf(it) } ?: emptyList())
-                year?.also { year -> uriBuilder.queryParam("year", year) }
-                sessionName?.also { sessionName -> uriBuilder.queryParam("session_name", sessionName.toString()) }
+        return rateLimited {
+            webClient
+                .get()
+                .uri { uriBuilder ->
+                    uriBuilder.path("/sessions")
+                    addMeetingAndSessionKeyParams(uriBuilder, meetingKey, sessionKey?.let { listOf(it) } ?: emptyList())
+                    year?.also { year -> uriBuilder.queryParam("year", year) }
+                    sessionName?.also { sessionName -> uriBuilder.queryParam("session_name", sessionName.toString()) }
 
-                uriBuilder.build()
-            }
-            .exchangeToFlow { it.bodyToFlow() }
+                    uriBuilder.build()
+                }
+                .exchangeToFlow { it.bodyToFlow() }
+        }
     }
 
     /**
@@ -141,7 +155,7 @@ class OpenF1Client(
      * @return A [Flow] emitting [OpenF1SessionResultResponse] objects.
      * @throws OpenF1ClientRequestException If neither meetingKey nor sessionKey is provided.
      */
-    fun getResults(
+    suspend fun getResults(
         meetingKey: Int? = null,
         sessionKeys: List<String> = emptyList()
     ): Flow<OpenF1SessionResultResponse> {
@@ -149,23 +163,25 @@ class OpenF1Client(
             throw OpenF1ClientRequestException("One of meetingKey or sessionKey are required")
         }
 
-        return webClient
-            .get()
-            .uri { uriBuilder ->
-                uriBuilder.path("/session_result")
-                addMeetingAndSessionKeyParams(uriBuilder, meetingKey, sessionKeys)
+        return rateLimited {
+            webClient
+                .get()
+                .uri { uriBuilder ->
+                    uriBuilder.path("/session_result")
+                    addMeetingAndSessionKeyParams(uriBuilder, meetingKey, sessionKeys)
 
-                uriBuilder.build()
-            }
-            .exchangeToFlow {
-                if (it.statusCode() != HttpStatus.OK) {
-                    return@exchangeToFlow emptyFlow()
+                    uriBuilder.build()
                 }
-                it.bodyToFlow()
-            }
+                .exchangeToFlow {
+                    if (it.statusCode() != HttpStatus.OK) {
+                        return@exchangeToFlow emptyFlow()
+                    }
+                    it.bodyToFlow()
+                }
+        }
     }
 
-    fun getQualifyingResults(
+    suspend fun getQualifyingResults(
         meetingKey: Int? = null,
         sessionKeys: List<String> = emptyList()
     ): Flow<OpenF1QualifyingSessionResultResponse> {
@@ -173,20 +189,22 @@ class OpenF1Client(
             throw OpenF1ClientRequestException("One of meetingKey or sessionKey are required")
         }
 
-        return webClient
-            .get()
-            .uri { uriBuilder ->
-                uriBuilder.path("/session_result")
-                addMeetingAndSessionKeyParams(uriBuilder, meetingKey, sessionKeys)
+        return rateLimited {
+            webClient
+                .get()
+                .uri { uriBuilder ->
+                    uriBuilder.path("/session_result")
+                    addMeetingAndSessionKeyParams(uriBuilder, meetingKey, sessionKeys)
 
-                uriBuilder.build()
-            }
-            .exchangeToFlow {
-                if (it.statusCode() != HttpStatus.OK) {
-                    return@exchangeToFlow emptyFlow()
+                    uriBuilder.build()
                 }
-                it.bodyToFlow()
-            }
+                .exchangeToFlow {
+                    if (it.statusCode() != HttpStatus.OK) {
+                        return@exchangeToFlow emptyFlow()
+                    }
+                    it.bodyToFlow()
+                }
+        }
     }
 
     /**
@@ -199,7 +217,7 @@ class OpenF1Client(
      * @return A [Flow] emitting [OpenF1OvertakeResponse] objects.
      * @throws OpenF1ClientRequestException If none of the parameters are provided.
      */
-    fun getOvertakes(
+    suspend fun getOvertakes(
         meetingKey: Int? = null,
         sessionKey: String? = null,
         overtakingDriverNumber: Int? = null,
@@ -209,32 +227,34 @@ class OpenF1Client(
             throw OpenF1ClientRequestException("One of meetingKey, sessionKey, overtakenDriverNumber or overtakingDriverNumber are required")
         }
 
-        return webClient
-            .get()
-            .uri { uriBuilder ->
-                uriBuilder.path("/overtakes")
-                addMeetingAndSessionKeyParams(uriBuilder, meetingKey, sessionKey?.let { listOf(it) } ?: emptyList())
-                overtakingDriverNumber?.also { overtakingDriverNumber ->
-                    uriBuilder.queryParam(
-                        "overtaking_driver_number",
-                        overtakingDriverNumber
-                    )
-                }
-                overtakenDriverNumber?.also { overtakenDriverNumber ->
-                    uriBuilder.queryParam(
-                        "overtaken_driver_number",
-                        overtakenDriverNumber
-                    )
-                }
+        return rateLimited {
+            webClient
+                .get()
+                .uri { uriBuilder ->
+                    uriBuilder.path("/overtakes")
+                    addMeetingAndSessionKeyParams(uriBuilder, meetingKey, sessionKey?.let { listOf(it) } ?: emptyList())
+                    overtakingDriverNumber?.also { overtakingDriverNumber ->
+                        uriBuilder.queryParam(
+                            "overtaking_driver_number",
+                            overtakingDriverNumber
+                        )
+                    }
+                    overtakenDriverNumber?.also { overtakenDriverNumber ->
+                        uriBuilder.queryParam(
+                            "overtaken_driver_number",
+                            overtakenDriverNumber
+                        )
+                    }
 
-                uriBuilder.build()
-            }
-            .exchangeToFlow {
-                if (it.statusCode() == HttpStatus.NOT_FOUND) {
-                    return@exchangeToFlow emptyFlow()
+                    uriBuilder.build()
                 }
-                it.bodyToFlow()
-            }
+                .exchangeToFlow {
+                    if (it.statusCode() == HttpStatus.NOT_FOUND) {
+                        return@exchangeToFlow emptyFlow()
+                    }
+                    it.bodyToFlow()
+                }
+        }
     }
 
     /**
@@ -247,7 +267,7 @@ class OpenF1Client(
      * @return A [Flow] emitting [OpenF1StintResponse] objects.
      * @throws OpenF1ClientRequestException If none of the parameters are provided.
      */
-    fun getStints(
+    suspend fun getStints(
         meetingKey: Int? = null,
         sessionKey: String? = null,
         driverNumber: Int? = null,
@@ -257,17 +277,19 @@ class OpenF1Client(
             throw OpenF1ClientRequestException("One of meetingKey, sessionKey, driverNumber or compound are required")
         }
 
-        return webClient
-            .get()
-            .uri { uriBuilder ->
-                uriBuilder.path("/stints")
-                addMeetingAndSessionKeyParams(uriBuilder, meetingKey, sessionKey?.let { listOf(it) } ?: emptyList())
-                driverNumber?.also { driverNumber -> uriBuilder.queryParam("driver_number", driverNumber) }
-                compound?.also { compound -> uriBuilder.queryParam("compound", compound) }
+        return rateLimited {
+            webClient
+                .get()
+                .uri { uriBuilder ->
+                    uriBuilder.path("/stints")
+                    addMeetingAndSessionKeyParams(uriBuilder, meetingKey, sessionKey?.let { listOf(it) } ?: emptyList())
+                    driverNumber?.also { driverNumber -> uriBuilder.queryParam("driver_number", driverNumber) }
+                    compound?.also { compound -> uriBuilder.queryParam("compound", compound) }
 
-                uriBuilder.build()
-            }
-            .exchangeToFlow { it.bodyToFlow() }
+                    uriBuilder.build()
+                }
+                .exchangeToFlow { it.bodyToFlow() }
+        }
     }
 
     /**
@@ -279,7 +301,7 @@ class OpenF1Client(
      * @return A [Flow] emitting [OpenF1LapResponse] objects.
      * @throws OpenF1ClientRequestException If none of the parameters are provided.
      */
-    fun getLaps(
+    suspend fun getLaps(
         meetingKey: Int? = null,
         sessionKey: String? = null,
         driverNumber: Int? = null
@@ -288,21 +310,23 @@ class OpenF1Client(
             throw OpenF1ClientRequestException("One of meetingKey, sessionKey or driverNumber are required")
         }
 
-        return webClient
-            .get()
-            .uri { uriBuilder ->
-                uriBuilder.path("/laps")
-                addMeetingAndSessionKeyParams(uriBuilder, meetingKey, sessionKey?.let { listOf(it) } ?: emptyList())
-                driverNumber?.also { driverNumber -> uriBuilder.queryParam("driver_number", driverNumber) }
+        return rateLimited {
+            webClient
+                .get()
+                .uri { uriBuilder ->
+                    uriBuilder.path("/laps")
+                    addMeetingAndSessionKeyParams(uriBuilder, meetingKey, sessionKey?.let { listOf(it) } ?: emptyList())
+                    driverNumber?.also { driverNumber -> uriBuilder.queryParam("driver_number", driverNumber) }
 
-                uriBuilder.build()
-            }
-            .exchangeToFlow { response ->
-                if (response.statusCode() == HttpStatus.NOT_FOUND) {
-                    return@exchangeToFlow emptyFlow()
+                    uriBuilder.build()
                 }
-                response.bodyToFlow()
-            }
+                .exchangeToFlow { response ->
+                    if (response.statusCode() == HttpStatus.NOT_FOUND) {
+                        return@exchangeToFlow emptyFlow()
+                    }
+                    response.bodyToFlow()
+                }
+        }
     }
 
     private fun addMeetingAndSessionKeyParams(uriBuilder: UriBuilder, meetingKey: Int?, sessionKeys: List<String>) {

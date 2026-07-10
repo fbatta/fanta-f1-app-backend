@@ -134,7 +134,7 @@ class QualifyingResultsServiceTest {
             qualifyingResultsService.getDriversResultsForQualifying(raceWeekend, isSprintQualifying = false).toList()
 
         assertTrue(result.isEmpty())
-        verify(exactly = 0) { openF1Client.getQualifyingResults(any()) }
+        coVerify(exactly = 0) { openF1Client.getQualifyingResults(any()) }
         coVerify(exactly = 0) { driverService.getDriversInSessions(any()) }
     }
 

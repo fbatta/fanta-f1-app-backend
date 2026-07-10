@@ -92,7 +92,7 @@ class PracticeResultsServiceTest {
         val result = practiceResultsService.getDriversResultsForCombinedPractice(raceWeekend).toList()
 
         assertTrue(result.isEmpty())
-        verify(exactly = 0) { openF1Client.getResults(any(), any()) }
+        coVerify(exactly = 0) { openF1Client.getResults(any(), any()) }
         coVerify(exactly = 0) { driverService.getDriversInSessions(any()) }
     }
 

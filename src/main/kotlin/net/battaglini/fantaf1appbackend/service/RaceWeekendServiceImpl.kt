@@ -1,6 +1,5 @@
 package net.battaglini.fantaf1appbackend.service
 
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -21,9 +20,6 @@ import org.springframework.boot.context.event.ApplicationStartedEvent
 import org.springframework.context.event.EventListener
 import org.springframework.stereotype.Service
 import kotlin.time.Clock
-import kotlin.time.Duration.Companion.seconds
-import kotlin.time.DurationUnit
-import kotlin.time.toDuration
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -60,7 +56,6 @@ class RaceWeekendServiceImpl(
             val races = openF1Client.getRaces(year = year).map { meeting ->
                 val sessions = openF1Client.getSessions(meeting.meetingKey)
                     .map { it.toRaceWeekendSession(calculateSessionId(it.sessionKey, it.meetingKey)) }
-                delay(100.toDuration(DurationUnit.MILLISECONDS))
                 meeting.toRace(calculateRaceId(meeting.meetingKey, meeting.year), sessions.toList())
             }.toList()
             raceRepository.createOrUpdateRaces(races)
@@ -173,9 +168,7 @@ class RaceWeekendServiceImpl(
     }
 
     private suspend fun <T> fetchResults(fetcher: suspend () -> Flow<T>): List<T> {
-        val results = fetcher().toList()
-        delay(2.seconds)
-        return results
+        return fetcher().toList()
     }
 
     private fun calculateRaceId(meetingKey: Int, year: Int): String {

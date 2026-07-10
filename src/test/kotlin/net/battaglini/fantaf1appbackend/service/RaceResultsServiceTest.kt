@@ -141,7 +141,7 @@ class RaceResultsServiceTest {
         val result = raceResultsService.getResultsForRace(raceWeekend, isSprintRace = false).toList()
 
         assertTrue(result.isEmpty())
-        verify(exactly = 0) { openF1Client.getResults(any()) }
+        coVerify(exactly = 0) { openF1Client.getResults(any()) }
     }
 
     @Test
