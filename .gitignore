@@ -49,3 +49,9 @@ src/main/resources/credentials
 ### Opencode ###
 .opencode
 .tmp
+
+### AI stuff ####
+.agents
+.claude
+.agent
+skills-lock.json
