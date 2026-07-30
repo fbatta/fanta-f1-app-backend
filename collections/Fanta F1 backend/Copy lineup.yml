@@ -1,0 +1,23 @@
+info:
+  name: Copy lineup
+  type: http
+  seq: 8
+
+http:
+  method: POST
+  url: "{{baseUrl}}/lineups/copy"
+  body:
+    type: json
+    data: |-
+      {
+        "teamId": "701bfe1f-233c-544c-8228-bf968e6da501",
+        "sourceRaceId": "00000000-0000-050a-0000-0000000007ea",
+        "targetRaceId": "00000000-0000-050b-0000-0000000007ea"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

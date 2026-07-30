@@ -18,7 +18,7 @@ data class OpenF1LapResponse(
     @JsonProperty("i2_speed")
     val i2Speed: Double?,
     @JsonProperty("is_pit_out_lap")
-    val isPitOutLap: Boolean,
+    val isPitOutLap: Boolean = false,
     @JsonProperty("lap_duration")
     val lapDuration: Double?,
     @JsonProperty("lap_number")
