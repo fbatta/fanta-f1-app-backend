@@ -37,10 +37,12 @@ request:
       autoRefreshToken: true
   variables:
     - name: baseUrl
-      value: http://localhost:8080
+      value: http://localhost:8082
     - name: oauthBaseUrl
       value: https://auth.battaglini.net
     - name: realm
       value: master
+    - name: clientSecret
+      value: bFZNvetelZia1BfBCK8IEAIiE08Ndqnq
 bundled: false
 extensions: {}

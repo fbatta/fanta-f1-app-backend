@@ -7,7 +7,9 @@ import io.mockk.junit5.MockKExtension
 import kotlinx.coroutines.test.runTest
 import net.battaglini.fantaf1appbackend.exception.InvalidRequestException
 import net.battaglini.fantaf1appbackend.model.*
+import net.battaglini.fantaf1appbackend.model.request.CopyLineupRequest
 import net.battaglini.fantaf1appbackend.model.request.CreateLineupRequest
+import net.battaglini.fantaf1appbackend.model.response.CopyLineupResponse
 import net.battaglini.fantaf1appbackend.model.response.CreateLineupResponse
 import net.battaglini.fantaf1appbackend.repository.DriverCostRepository
 import net.battaglini.fantaf1appbackend.repository.DriverRepository
@@ -374,5 +376,188 @@ class LineupServiceImplTest {
                 }
             )
         }
+    }
+
+    @Test
+    fun `copyLineup should copy lineup successfully`() = runTest {
+        val now = Instant.fromEpochMilliseconds(2000)
+        every { clock.now() } returns now
+
+        val targetRace = createRaceWeekend("race2", "Target Race")
+        val team = createTeam()
+        val driver = createDriver("id-VER", 1, "VER")
+        val driverCost = createDriverCost("id-VER", 12.0)
+        val sourceLineup = Lineup(
+            lineupId = "lineup-team1-race1",
+            teamId = "team1",
+            ownerId = "owner1",
+            raceId = "race1",
+            drivers = listOf(Lineup.Companion.LineupDriver("id-VER", 1, "VER", 10.0)),
+            createdAt = Instant.fromEpochMilliseconds(1000),
+            updatedAt = Instant.fromEpochMilliseconds(1000),
+            version = 1,
+            score = 25.0
+        )
+
+        coEvery { teamRepository.getTeamByTeamId("team1") } returns team
+        coEvery { raceWeekendService.getRaceWeekend("race2") } returns targetRace
+        coEvery { lineupRepository.getLineup("team1", "race1") } returns sourceLineup
+        coEvery { driverRepository.findDriverById("id-VER") } returns driver
+        coEvery { driverCostRepository.getDriverCostByDriverId("id-VER") } returns driverCost
+        coEvery { lineupRepository.createOrUpdateLineup(any()) } just Runs
+
+        val request = CopyLineupRequest(
+            teamId = "team1",
+            sourceRaceId = "race1",
+            targetRaceId = "race2"
+        )
+
+        val response = service.copyLineup(request)
+
+        assertEquals("lineup-team1-race2", response.lineupId)
+        assertEquals("team1", response.teamId)
+        assertEquals("race2", response.targetRaceId)
+        assertEquals(1, response.drivers.size)
+        assertEquals("id-VER", response.drivers[0].driverId)
+        assertEquals(12.0, response.drivers[0].driverCost)
+
+        coVerify {
+            lineupRepository.createOrUpdateLineup(
+                match {
+                    it.lineupId == "lineup-team1-race2" &&
+                            it.teamId == "team1" &&
+                            it.ownerId == "owner1" &&
+                            it.raceId == "race2" &&
+                            it.createdAt == now &&
+                            it.updatedAt == now &&
+                            it.version == 1 &&
+                            it.score == null &&
+                            it.drivers.size == 1 &&
+                            it.drivers[0].driverId == "id-VER" &&
+                            it.drivers[0].driverCost == 12.0
+                }
+            )
+        }
+    }
+
+    @Test
+    fun `copyLineup should throw when team not found`() = runTest {
+        coEvery { teamRepository.getTeamByTeamId("team1") } returns null
+
+        val request = CopyLineupRequest(
+            teamId = "team1",
+            sourceRaceId = "race1",
+            targetRaceId = "race2"
+        )
+
+        val e = assertThrows<InvalidRequestException> {
+            service.copyLineup(request)
+        }
+        assertEquals("Team with teamId=team1 not found", e.message)
+    }
+
+    @Test
+    fun `copyLineup should throw when target race weekend not found`() = runTest {
+        coEvery { teamRepository.getTeamByTeamId("team1") } returns createTeam()
+        coEvery { raceWeekendService.getRaceWeekend("race2") } returns null
+
+        val request = CopyLineupRequest(
+            teamId = "team1",
+            sourceRaceId = "race1",
+            targetRaceId = "race2"
+        )
+
+        val e = assertThrows<InvalidRequestException> {
+            service.copyLineup(request)
+        }
+        assertEquals("RaceWeekend with raceId=race2 not found", e.message)
+    }
+
+    @Test
+    fun `copyLineup should throw when source lineup not found`() = runTest {
+        coEvery { teamRepository.getTeamByTeamId("team1") } returns createTeam()
+        coEvery { raceWeekendService.getRaceWeekend("race2") } returns createRaceWeekend("race2")
+        coEvery { lineupRepository.getLineup("team1", "race1") } returns null
+
+        val request = CopyLineupRequest(
+            teamId = "team1",
+            sourceRaceId = "race1",
+            targetRaceId = "race2"
+        )
+
+        val e = assertThrows<InvalidRequestException> {
+            service.copyLineup(request)
+        }
+        assertEquals("Lineup not found for teamId=team1 and raceId=race1", e.message)
+    }
+
+    @Test
+    fun `copyLineup should throw when driver not found`() = runTest {
+        val targetRace = createRaceWeekend("race2", "Target Race")
+        val team = createTeam()
+        val sourceLineup = Lineup(
+            lineupId = "lineup-team1-race1",
+            teamId = "team1",
+            ownerId = "owner1",
+            raceId = "race1",
+            drivers = listOf(Lineup.Companion.LineupDriver("id-VER", 1, "VER", 10.0)),
+            createdAt = Instant.fromEpochMilliseconds(1000),
+            updatedAt = Instant.fromEpochMilliseconds(1000),
+            version = 1,
+            score = 25.0
+        )
+
+        every { clock.now() } returns Instant.fromEpochMilliseconds(2000)
+        coEvery { teamRepository.getTeamByTeamId("team1") } returns team
+        coEvery { raceWeekendService.getRaceWeekend("race2") } returns targetRace
+        coEvery { lineupRepository.getLineup("team1", "race1") } returns sourceLineup
+        coEvery { driverRepository.findDriverById("id-VER") } returns null
+
+        val request = CopyLineupRequest(
+            teamId = "team1",
+            sourceRaceId = "race1",
+            targetRaceId = "race2"
+        )
+
+        val e = assertThrows<InvalidRequestException> {
+            service.copyLineup(request)
+        }
+        assertEquals("Driver with driverId=id-VER not found", e.message)
+    }
+
+    @Test
+    fun `copyLineup should throw when driver cost not found`() = runTest {
+        val targetRace = createRaceWeekend("race2", "Target Race")
+        val team = createTeam()
+        val driver = createDriver()
+        val sourceLineup = Lineup(
+            lineupId = "lineup-team1-race1",
+            teamId = "team1",
+            ownerId = "owner1",
+            raceId = "race1",
+            drivers = listOf(Lineup.Companion.LineupDriver("id-VER", 1, "VER", 10.0)),
+            createdAt = Instant.fromEpochMilliseconds(1000),
+            updatedAt = Instant.fromEpochMilliseconds(1000),
+            version = 1,
+            score = 25.0
+        )
+
+        every { clock.now() } returns Instant.fromEpochMilliseconds(2000)
+        coEvery { teamRepository.getTeamByTeamId("team1") } returns team
+        coEvery { raceWeekendService.getRaceWeekend("race2") } returns targetRace
+        coEvery { lineupRepository.getLineup("team1", "race1") } returns sourceLineup
+        coEvery { driverRepository.findDriverById("id-VER") } returns driver
+        coEvery { driverCostRepository.getDriverCostByDriverId("id-VER") } returns null
+
+        val request = CopyLineupRequest(
+            teamId = "team1",
+            sourceRaceId = "race1",
+            targetRaceId = "race2"
+        )
+
+        val e = assertThrows<InvalidRequestException> {
+            service.copyLineup(request)
+        }
+        assertEquals("Driver cost not found for driverId=id-VER", e.message)
     }
 }

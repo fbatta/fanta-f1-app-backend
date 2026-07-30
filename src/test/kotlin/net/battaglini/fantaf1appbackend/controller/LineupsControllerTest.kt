@@ -4,7 +4,9 @@ import com.ninjasquad.springmockk.MockkBean
 import io.mockk.coEvery
 import io.mockk.coVerify
 import net.battaglini.fantaf1appbackend.exception.InvalidRequestException
+import net.battaglini.fantaf1appbackend.model.request.CopyLineupRequest
 import net.battaglini.fantaf1appbackend.model.request.CreateLineupRequest
+import net.battaglini.fantaf1appbackend.model.response.CopyLineupResponse
 import net.battaglini.fantaf1appbackend.model.response.CreateLineupResponse
 import net.battaglini.fantaf1appbackend.service.LineupService
 import org.junit.jupiter.api.Test
@@ -152,6 +154,129 @@ class LineupsControllerTest {
             .mutateWith(csrf())
             .post()
             .uri("/lineups")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(request)
+            .exchange()
+            .expectStatus().isUnauthorized
+    }
+
+    @Test
+    @WithMockUser(roles = ["ADMIN"])
+    fun `copyLineup should return 200 OK when successful`() {
+        val request = CopyLineupRequest(
+            teamId = "team1",
+            sourceRaceId = "race1",
+            targetRaceId = "race2"
+        )
+        val response = CopyLineupResponse(
+            lineupId = "lineup-team1-race2",
+            teamId = "team1",
+            targetRaceId = "race2",
+            drivers = listOf(
+                CopyLineupResponse.LineupDriverDto("id-VER", 1, "VER", 12.0)
+            )
+        )
+        coEvery { lineupService.copyLineup(any()) } returns response
+
+        webTestClient
+            .mutateWith(csrf())
+            .post()
+            .uri("/lineups/copy")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(request)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody()
+            .jsonPath("$.lineupId").isEqualTo("lineup-team1-race2")
+            .jsonPath("$.teamId").isEqualTo("team1")
+            .jsonPath("$.targetRaceId").isEqualTo("race2")
+            .jsonPath("$.drivers.length()").isEqualTo(1)
+            .jsonPath("$.drivers[0].driverId").isEqualTo("id-VER")
+            .jsonPath("$.drivers[0].driverCost").isEqualTo(12.0)
+
+        coVerify { lineupService.copyLineup(any()) }
+    }
+
+    @Test
+    @WithMockUser(roles = ["ADMIN"])
+    fun `copyLineup should return 400 when validation fails`() {
+        val request = CopyLineupRequest(
+            teamId = "team1",
+            sourceRaceId = "race1",
+            targetRaceId = "race2"
+        )
+        coEvery { lineupService.copyLineup(any()) } throws InvalidRequestException("Team with teamId=team1 not found")
+
+        webTestClient
+            .mutateWith(csrf())
+            .post()
+            .uri("/lineups/copy")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(request)
+            .exchange()
+            .expectStatus().isBadRequest
+    }
+
+    @Test
+    @WithMockUser(roles = ["ADMIN"])
+    fun `copyLineup should return 500 when service fails`() {
+        val request = CopyLineupRequest(
+            teamId = "team1",
+            sourceRaceId = "race1",
+            targetRaceId = "race2"
+        )
+        coEvery { lineupService.copyLineup(any()) } throws RuntimeException("Unexpected error")
+
+        webTestClient
+            .mutateWith(csrf())
+            .post()
+            .uri("/lineups/copy")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(request)
+            .exchange()
+            .expectStatus().is5xxServerError
+    }
+
+    @Test
+    @WithMockUser(roles = ["DRIVERS_MANAGER"])
+    fun `copyLineup should allow DRIVERS_MANAGER role`() {
+        val request = CopyLineupRequest(
+            teamId = "team1",
+            sourceRaceId = "race1",
+            targetRaceId = "race2"
+        )
+        val response = CopyLineupResponse(
+            lineupId = "lineup-team1-race2",
+            teamId = "team1",
+            targetRaceId = "race2",
+            drivers = listOf(
+                CopyLineupResponse.LineupDriverDto("id-VER", 1, "VER", 12.0)
+            )
+        )
+        coEvery { lineupService.copyLineup(any()) } returns response
+
+        webTestClient
+            .mutateWith(csrf())
+            .post()
+            .uri("/lineups/copy")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(request)
+            .exchange()
+            .expectStatus().isOk
+    }
+
+    @Test
+    fun `copyLineup should return 401 when user has no role`() {
+        val request = CopyLineupRequest(
+            teamId = "team1",
+            sourceRaceId = "race1",
+            targetRaceId = "race2"
+        )
+
+        webTestClient
+            .mutateWith(csrf())
+            .post()
+            .uri("/lineups/copy")
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(request)
             .exchange()

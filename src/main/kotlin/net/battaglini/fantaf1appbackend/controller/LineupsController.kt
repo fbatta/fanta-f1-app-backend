@@ -1,7 +1,9 @@
 package net.battaglini.fantaf1appbackend.controller
 
 import net.battaglini.fantaf1appbackend.exception.InvalidRequestException
+import net.battaglini.fantaf1appbackend.model.request.CopyLineupRequest
 import net.battaglini.fantaf1appbackend.model.request.CreateLineupRequest
+import net.battaglini.fantaf1appbackend.model.response.CopyLineupResponse
 import net.battaglini.fantaf1appbackend.model.response.CreateLineupResponse
 import net.battaglini.fantaf1appbackend.service.LineupService
 import org.slf4j.LoggerFactory
@@ -25,6 +27,18 @@ class LineupsController(
             throw e
         } catch (e: Exception) {
             LOGGER.error("Failed to create lineup for teamId={}, raceId={}", request.teamId, request.raceId, e)
+            throw RuntimeException(e.message)
+        }
+    }
+
+    @PostMapping("/copy")
+    suspend fun copyLineup(@RequestBody request: CopyLineupRequest): CopyLineupResponse {
+        try {
+            return lineupService.copyLineup(request)
+        } catch (e: InvalidRequestException) {
+            throw e
+        } catch (e: Exception) {
+            LOGGER.error("Failed to copy lineup for teamId={}, sourceRaceId={}, targetRaceId={}", request.teamId, request.sourceRaceId, request.targetRaceId, e)
             throw RuntimeException(e.message)
         }
     }

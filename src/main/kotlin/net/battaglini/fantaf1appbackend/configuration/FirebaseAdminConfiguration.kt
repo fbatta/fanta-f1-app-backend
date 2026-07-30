@@ -31,14 +31,21 @@ class FirebaseAdminConfiguration(
     @Bean
     @Primary
     fun defaultFirebaseApp(serviceAccountCredentials: GoogleCredentials): FirebaseApp {
+        val apps = FirebaseApp.getApps()
+        if (apps.isNotEmpty()) {
+            return FirebaseApp.getInstance()
+        }
+
         val firestoreOptions = FirestoreOptions.newBuilder()
             .setDatabaseId(firebaseProperties.databaseId)
+            .setProjectId(firebaseProperties.projectId)
             .build()
 
         val firebaseOptions = FirebaseOptions.builder()
             .setFirestoreOptions(firestoreOptions)
             .setStorageBucket(firebaseProperties.storageBucket)
             .setCredentials(serviceAccountCredentials)
+            .setProjectId(firebaseProperties.projectId)
             .build()
 
         return FirebaseApp.initializeApp(firebaseOptions)

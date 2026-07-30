@@ -2,11 +2,12 @@ logging:
   level:
     root: info
 
+
 firebase:
   app-name: fantaf1
   database-id: (default)
   storage-bucket: fantaf1-beitz25.firebasestorage.app
-  credentials-path: /credentials/serviceAccount.json
+  credentials-path: credentials/serviceAccount.json
   project-id: fantaf1-beitz25
   firestore:
     pagination:
@@ -36,3 +37,5 @@ management:
     metrics:
       export:
         enabled: false
+server:
+  port: 8082
