@@ -55,3 +55,7 @@ src/main/resources/credentials
 .claude
 .agent
 skills-lock.json
+openspec
+
+### Temp data ###
+data
