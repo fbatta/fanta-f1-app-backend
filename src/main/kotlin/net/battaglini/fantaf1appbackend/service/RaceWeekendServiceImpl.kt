@@ -20,10 +20,9 @@ import org.springframework.boot.context.event.ApplicationStartedEvent
 import org.springframework.context.event.EventListener
 import org.springframework.stereotype.Service
 import kotlin.time.Clock
-import kotlin.uuid.ExperimentalUuidApi
+import kotlin.time.Instant
 import kotlin.uuid.Uuid
 
-@OptIn(ExperimentalUuidApi::class)
 @Service
 class RaceWeekendServiceImpl(
     private val openF1Client: OpenF1Client,
@@ -34,10 +33,10 @@ class RaceWeekendServiceImpl(
     private val raceWeekendResultRepository: RaceWeekendResultRepository,
     private val clock: Clock,
     private val timeZone: TimeZone,
-    private val practiceResultsService: net.battaglini.fantaf1appbackend.service.PracticeResultsService,
-    private val qualifyingResultsService: net.battaglini.fantaf1appbackend.service.QualifyingResultsService,
-    private val raceResultsService: net.battaglini.fantaf1appbackend.service.RaceResultsService,
-    private val raceWeekendResultsCalculator: net.battaglini.fantaf1appbackend.service.RaceWeekendResultsCalculator
+    private val practiceResultsService: PracticeResultsService,
+    private val qualifyingResultsService: QualifyingResultsService,
+    private val raceResultsService: RaceResultsService,
+    private val raceWeekendResultsCalculator: RaceWeekendResultsCalculator
 ) : RaceWeekendService {
     @EventListener(ApplicationStartedEvent::class)
     private suspend fun onStart() {
@@ -68,6 +67,18 @@ class RaceWeekendServiceImpl(
 
     override suspend fun getRaceWeekend(raceId: String): RaceWeekend? {
         return raceRepository.getRaceById(raceId).firstOrNull()
+    }
+
+    override suspend fun setRaceWeekendLineupOpenDateTime(
+        raceId: String,
+        instant: Instant
+    ): String? {
+        val raceWeekend = getRaceWeekend(raceId) ?: return null
+        // lineup open cannot be after lineup close
+        assert(instant < raceWeekend.dateLineupClose)
+        val raceWeekendCopy = raceWeekend.copy(dateLineupOpen = instant)
+        raceRepository.updateRace(raceWeekendCopy)
+        return raceWeekendCopy.raceName
     }
 
     override suspend fun getRaceWeekendResults(raceId: String): RaceWeekendResult? {

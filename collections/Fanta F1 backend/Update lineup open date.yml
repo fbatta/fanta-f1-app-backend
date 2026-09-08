@@ -1,16 +1,16 @@
 info:
-  name: Recalculate race weekend results
+  name: Update lineup open date
   type: http
-  seq: 7
+  seq: 9
 
 http:
   method: POST
-  url: "{{baseUrl}}/race-weekends/recalculate"
+  url: "{{baseUrl}}/race-weekends/open-lineup"
   body:
     type: json
     data: |-
       {
-        "raceId": "00000000-0000-050d-0000-0000000007ea"
+        "raceId": "00000000-0000-050e-0000-0000000007ea"
       }
   auth: inherit
 

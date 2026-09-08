@@ -1,8 +1,8 @@
 val firebaseAdminVersion = "9.10.0"
-val kotlinxDateTimeVersion = "0.7.1"
+val kotlinxDateTimeVersion = "0.8.0-0.6.x-compat"
 val caffeineVersion = "3.2.4"
-val googleGenAIVersion = "1.62.0"
-val okhttp3Version = "5.4.0"
+val googleGenAIVersion = "1.70.0"
+val okhttp3Version = "5.5.0"
 val mockkVersion = "1.14.9"
 val springMockkVersion = "5.0.1"
 val springDocVersion = "3.0.3"
@@ -11,9 +11,9 @@ val krateVersion = "1.0.3"
 plugins {
     kotlin("jvm") version "2.4.10"
     kotlin("plugin.spring") version "2.4.10"
-    id("org.springframework.boot") version "4.1.0"
+    id("org.springframework.boot") version "4.2.0-M1"
     id("io.spring.dependency-management") version "1.1.7"
-    id("com.github.ben-manes.versions") version "0.54.0"
+    id("com.github.ben-manes.versions") version "0.61.0"
 }
 
 group = "net.battaglini"

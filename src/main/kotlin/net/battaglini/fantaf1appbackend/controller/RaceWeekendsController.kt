@@ -1,8 +1,10 @@
 package net.battaglini.fantaf1appbackend.controller
 
+import kotlinx.datetime.plus
 import net.battaglini.fantaf1appbackend.model.request.RecalculateRaceWeekendRequest
 import net.battaglini.fantaf1appbackend.model.response.RecalculateRaceWeekendResponse
 import net.battaglini.fantaf1appbackend.model.request.GenerateRaceRecapRequest
+import net.battaglini.fantaf1appbackend.model.request.OpenRaceWeekendLineupRequest
 import net.battaglini.fantaf1appbackend.model.response.GenerateRaceRecapResponse
 import net.battaglini.fantaf1appbackend.service.RaceWeekendService
 import org.slf4j.LoggerFactory
@@ -11,6 +13,7 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
+import kotlin.time.Clock
 
 @RestController
 @RequestMapping(path = ["/race-weekends"])
@@ -23,6 +26,20 @@ class RaceWeekendsController(
             raceWeekendService.seedRaceWeekends()
         } catch (e: Exception) {
             throw RuntimeException(e.message)
+        }
+    }
+
+    @PostMapping("open-lineup")
+    suspend fun openRaceWeekendLineup(@RequestBody request: OpenRaceWeekendLineupRequest): String {
+        try {
+            var instant = Clock.System.now()
+            if (request.delay != null) {
+                request.delayUnit?.let { instant = instant.plus(request.delay, it) } ?: throw AssertionError("delayUnit cannot be null")
+            }
+            val raceName = raceWeekendService.setRaceWeekendLineupOpenDateTime(request.raceId, instant) ?: return "Could not update lineup date for raceId=${request.raceId}"
+            return raceName
+        } catch (e: Exception) {
+            return "Could not update lineup date for raceId=${request.raceId}. ${e.message}"
         }
     }
 

@@ -10,6 +10,8 @@ import net.battaglini.fantaf1appbackend.configuration.OpenF1ApiProperties
 import net.battaglini.fantaf1appbackend.enums.openf1.OpenF1SessionName
 import net.battaglini.fantaf1appbackend.enums.openf1.OpenF1TyreCompound
 import net.battaglini.fantaf1appbackend.model.openf1.*
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
@@ -19,19 +21,19 @@ import org.springframework.web.reactive.function.client.bodyToFlow
 import org.springframework.web.reactive.function.client.exchangeToFlow
 import org.springframework.web.util.UriBuilder
 
+class OpenF1ClientRequestException(message: String) : RuntimeException(message)
+
 /**
  * Implementation of OpenF1Client for interacting with the OpenF1 API.
  *
  * @property rateLimiter Rate limiter for API rate limiting.
- * @property openF1ApiProperties Configuration properties for the OpenF1 API.
  */
-class OpenF1ClientRequestException(message: String) : RuntimeException(message)
-
 @Component
 class OpenF1ClientImpl(
     private val rateLimiter: OpenF1RateLimiter,
     openF1ApiProperties: OpenF1ApiProperties
 ) : OpenF1Client {
+    private val logger: Logger = LoggerFactory.getLogger(OpenF1ClientImpl::class.java)
 
     private val webClient: WebClient = WebClient.builder()
         .baseUrl("${openF1ApiProperties.baseUrl}/${openF1ApiProperties.apiVersion}")
@@ -256,10 +258,11 @@ class OpenF1ClientImpl(
                     uriBuilder.build()
                 }
                 .exchangeToFlow { response ->
-                    if (response.statusCode() == HttpStatus.NOT_FOUND) {
+                    if (response.statusCode() != HttpStatus.OK) {
+                        logger.warn("Failed to retrieve laps for meetingkey={}, sessionKey={}, driverNumber={}", meetingKey, sessionKey, driverNumber)
                         return@exchangeToFlow emptyFlow()
                     }
-                    response.bodyToFlow()
+                    response.bodyToFlow(OpenF1LapResponse::class)
                 }
         }
     }

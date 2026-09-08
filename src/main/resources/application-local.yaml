@@ -19,7 +19,7 @@ google:
     default-output-tokens: 1000
     image-model: 'imagen-3.0-generate-002'
     api-key: ${GOOGLE_GENAI_API_KEY}
-    chat-model-thinking: 'gemma-4-31b-it'
+    chat-model-thinking: 'gemini-flash-latest'
     default-thinking-budget: 1000
 
 seeding:
@@ -27,7 +27,7 @@ seeding:
   race-weekends: false
 
 results-calculator:
-  enable: true
+  enable: false
   dry-run: false
 pricing:
   dry-run: false

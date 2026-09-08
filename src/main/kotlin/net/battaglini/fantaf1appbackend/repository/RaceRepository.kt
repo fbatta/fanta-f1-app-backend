@@ -11,6 +11,7 @@ import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
 import net.battaglini.fantaf1appbackend.model.RaceWeekend
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Repository
 import tools.jackson.databind.ObjectMapper
 import kotlin.time.Instant
@@ -75,7 +76,20 @@ class RaceRepository(
         }
     }
 
+    suspend fun updateRace(race: RaceWeekend) {
+        withContext(Dispatchers.IO) {
+            val ref = firestore.collection(COLLECTION_PATH).document(race.raceId)
+            if(ref.get().get().exists()) {
+                ref.set(objectMapper.convertValue(race, Map::class.java))
+                LOGGER.info("Updated race with raceId={}", race.raceId)
+            } else {
+                LOGGER.error("Race with raceId={} not found", race.raceId)
+            }
+        }
+    }
+
     companion object {
         private const val COLLECTION_PATH = "races"
+        private val LOGGER = LoggerFactory.getLogger(RaceRepository::class.java)
     }
 }

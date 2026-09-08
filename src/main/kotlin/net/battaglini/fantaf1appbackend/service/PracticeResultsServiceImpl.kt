@@ -43,9 +43,9 @@ class PracticeResultsServiceImpl(
         ).toList()
 
         return driverService.getDriversInSessions(sessions.map { it.second }).map { driver ->
-            val fastestLap = results.filter { it.driverNumber == driver.driverNumber }.fold(999_999.9, { acc, result ->
+            val fastestLap = results.filter { it.driverNumber == driver.driverNumber }.fold(999_999.9) { acc, result ->
                 if (result.duration != null && result.duration < acc) result.duration else acc
-            })
+            }
 
             DriverPracticeResult(
                 raceId = raceWeekend.raceId,
