@@ -92,7 +92,8 @@ class TeamResultsServiceImplTest {
         drivers: List<Lineup.Companion.LineupDriver> = listOf(
             Lineup.Companion.LineupDriver("id-VER", 1, "VER", 10.0),
             Lineup.Companion.LineupDriver("id-HAM", 44, "HAM", 8.0)
-        )
+        ),
+        score: Double? = null
     ) = Lineup(
         lineupId = "lineup-$teamId-$raceId",
         teamId = teamId,
@@ -102,8 +103,26 @@ class TeamResultsServiceImplTest {
         createdAt = Instant.fromEpochMilliseconds(0),
         updatedAt = Instant.fromEpochMilliseconds(0),
         version = 1,
-        score = null
+        score = score
     )
+
+    private fun setupTransactionMock(failure: Throwable? = null): Transaction {
+        val mockTransaction = mockk<Transaction>()
+        val mockApiFuture = mockk<ApiFuture<Void>>()
+        if (failure != null) {
+            every { mockApiFuture.get() } throws failure
+        } else {
+            every { mockApiFuture.get() } returns null
+        }
+        every { firestore.runTransaction<Void>(any()) } answers {
+            val updateFunction = firstArg<Transaction.Function<Void>>()
+            updateFunction.updateCallback(mockTransaction)
+            mockApiFuture
+        }
+        every { lineupRepository.updateLineupInTransaction(any(), any()) } just Runs
+        every { teamRepository.updateTeamInTransaction(any(), any()) } just Runs
+        return mockTransaction
+    }
 
     @Test
     fun `calculatePointsPerLineup should sum driver points from race results`() = runTest {
@@ -164,16 +183,7 @@ class TeamResultsServiceImplTest {
         val lineup1 = createLineup("team1", "race1")
         coEvery { lineupRepository.getLineup("team1", "race1") } returns lineup1
 
-        val mockTransaction = mockk<Transaction>()
-        val mockApiFuture = mockk<ApiFuture<Void>>()
-        every { mockApiFuture.get() } returns null
-        every { firestore.runTransaction<Void>(any()) } answers {
-            val updateFunction = firstArg<Transaction.Function<Void>>()
-            updateFunction.updateCallback(mockTransaction)
-            mockApiFuture
-        }
-        coEvery { lineupRepository.updateLineupInTransaction(any(), any()) } just Runs
-        coEvery { teamRepository.updateTeamInTransaction(any(), any()) } just Runs
+        setupTransactionMock()
 
         val result = service.calculateAndSaveLineupsResults(raceResult)
 
@@ -187,13 +197,13 @@ class TeamResultsServiceImplTest {
         assertEquals(now, savedLineup.updatedAt)
 
         // Team should have updated points: 100.0 + 43.0 = 143.0
-        coVerify {
+        verify {
             teamRepository.updateTeamInTransaction(
                 match { it.teamId == "team1" && it.points[2025] == 143.0 },
                 any()
             )
         }
-        coVerify {
+        verify {
             lineupRepository.updateLineupInTransaction(
                 match { it.score == 43.0 },
                 any()
@@ -223,7 +233,7 @@ class TeamResultsServiceImplTest {
         assertNull(entry.value)
 
         // Should NOT save anything since lineup was null
-        coVerify(exactly = 0) { firestore.runTransaction<Void>(any()) }
+        verify(exactly = 0) { firestore.runTransaction<Void>(any()) }
     }
 
     @Test
@@ -251,7 +261,7 @@ class TeamResultsServiceImplTest {
         assertEquals(43.0, entry.value!!.score)
 
         // No transaction should be executed
-        coVerify(exactly = 0) { firestore.runTransaction<Void>(any()) }
+        verify(exactly = 0) { firestore.runTransaction<Void>(any()) }
     }
 
     @Test
@@ -268,14 +278,7 @@ class TeamResultsServiceImplTest {
         val lineup1 = createLineup("team1", "race1")
         coEvery { lineupRepository.getLineup("team1", "race1") } returns lineup1
 
-        val mockTransaction = mockk<Transaction>()
-        val mockApiFuture = mockk<ApiFuture<Void>>()
-        every { mockApiFuture.get() } throws RuntimeException("Transaction failed")
-        every { firestore.runTransaction<Void>(any()) } answers {
-            val updateFunction = firstArg<Transaction.Function<Void>>()
-            updateFunction.updateCallback(mockTransaction)
-            mockApiFuture
-        }
+        setupTransactionMock(failure = RuntimeException("Transaction failed"))
 
         // Should not throw - exception is caught internally
         val result = service.calculateAndSaveLineupsResults(raceResult)
@@ -303,20 +306,11 @@ class TeamResultsServiceImplTest {
         val lineup1 = createLineup("team1", "race1")
         coEvery { lineupRepository.getLineup("team1", "race1") } returns lineup1
 
-        val mockTransaction = mockk<Transaction>()
-        val mockApiFuture = mockk<ApiFuture<Void>>()
-        every { mockApiFuture.get() } returns null
-        every { firestore.runTransaction<Void>(any()) } answers {
-            val updateFunction = firstArg<Transaction.Function<Void>>()
-            updateFunction.updateCallback(mockTransaction)
-            mockApiFuture
-        }
-        coEvery { lineupRepository.updateLineupInTransaction(any(), any()) } just Runs
-        coEvery { teamRepository.updateTeamInTransaction(any(), any()) } just Runs
+        setupTransactionMock()
 
         service.calculateAndSaveLineupsResults(raceResult)
 
-        coVerify {
+        verify {
             teamRepository.updateTeamInTransaction(
                 match { it.points.containsKey(2025) && it.points[2025] == 43.0 },
                 any()
@@ -339,20 +333,11 @@ class TeamResultsServiceImplTest {
         val lineup1 = createLineup("team1", "race1")
         coEvery { lineupRepository.getLineup("team1", "race1") } returns lineup1
 
-        val mockTransaction = mockk<Transaction>()
-        val mockApiFuture = mockk<ApiFuture<Void>>()
-        every { mockApiFuture.get() } returns null
-        every { firestore.runTransaction<Void>(any()) } answers {
-            val updateFunction = firstArg<Transaction.Function<Void>>()
-            updateFunction.updateCallback(mockTransaction)
-            mockApiFuture
-        }
-        coEvery { lineupRepository.updateLineupInTransaction(any(), any()) } just Runs
-        coEvery { teamRepository.updateTeamInTransaction(any(), any()) } just Runs
+        setupTransactionMock()
 
         service.calculateAndSaveLineupsResults(raceResult)
 
-        coVerify {
+        verify {
             teamRepository.updateTeamInTransaction(
                 match { it.points[2025] == 243.0 },
                 any()
@@ -381,16 +366,7 @@ class TeamResultsServiceImplTest {
         coEvery { lineupRepository.getLineup("team1", "race1") } returns lineup1
         coEvery { lineupRepository.getLineup("team2", "race1") } returns lineup2
 
-        val mockTransaction = mockk<Transaction>()
-        val mockApiFuture = mockk<ApiFuture<Void>>()
-        every { mockApiFuture.get() } returns null
-        every { firestore.runTransaction<Void>(any()) } answers {
-            val updateFunction = firstArg<Transaction.Function<Void>>()
-            updateFunction.updateCallback(mockTransaction)
-            mockApiFuture
-        }
-        coEvery { lineupRepository.updateLineupInTransaction(any(), any()) } just Runs
-        coEvery { teamRepository.updateTeamInTransaction(any(), any()) } just Runs
+        setupTransactionMock()
 
         val result = service.calculateAndSaveLineupsResults(raceResult)
 
@@ -413,4 +389,75 @@ class TeamResultsServiceImplTest {
 
         assertTrue(result.isEmpty())
     }
+
+    @Test
+    fun `calculateAndSaveLineupsResults should subtract previous score when recalculating existing lineup result with higher score`() = runTest {
+        val raceResult = createRaceWeekendResult(
+            results = listOf(
+                RaceWeekendResult.Companion.Result("id-VER", 1, "VER", 30.0),
+                RaceWeekendResult.Companion.Result("id-HAM", 44, "HAM", 20.0)
+            )
+        )
+        val now = Instant.parse("2025-05-04T12:00:00Z")
+        every { clock.now() } returns now
+
+        // Team has 200.0 points total for 2025 (which previously included 43.0 from this race)
+        val team1 = createTeam("team1", 200.0)
+        val mockSnapshot = mockk<DocumentSnapshot>()
+        coEvery { teamRepository.getAllTeams(null) } returns flowOf(Pair(mockSnapshot, team1))
+        coEvery { teamRepository.getAllTeams(mockSnapshot) } returns emptyFlow()
+
+        // Existing lineup already has a score of 43.0
+        val lineup1 = createLineup("team1", "race1", score = 43.0)
+        coEvery { lineupRepository.getLineup("team1", "race1") } returns lineup1
+
+        setupTransactionMock()
+
+        service.calculateAndSaveLineupsResults(raceResult)
+
+        // New score for VER (30.0) + HAM (20.0) = 50.0
+        // Expected team points: 200.0 - 43.0 + 50.0 = 207.0
+        verify {
+            teamRepository.updateTeamInTransaction(
+                match { it.points[2025] == 207.0 },
+                any()
+            )
+        }
+    }
+
+    @Test
+    fun `calculateAndSaveLineupsResults should subtract previous score when recalculating existing lineup result with lower score`() = runTest {
+        val raceResult = createRaceWeekendResult(
+            results = listOf(
+                RaceWeekendResult.Companion.Result("id-VER", 1, "VER", 20.0),
+                RaceWeekendResult.Companion.Result("id-HAM", 44, "HAM", 15.0)
+            )
+        )
+        val now = Instant.parse("2025-05-04T12:00:00Z")
+        every { clock.now() } returns now
+
+        // Team has 200.0 points total for 2025 (which previously included 43.0 from this race)
+        val team1 = createTeam("team1", 200.0)
+        val mockSnapshot = mockk<DocumentSnapshot>()
+        coEvery { teamRepository.getAllTeams(null) } returns flowOf(Pair(mockSnapshot, team1))
+        coEvery { teamRepository.getAllTeams(mockSnapshot) } returns emptyFlow()
+
+        // Existing lineup already has a score of 43.0
+        val lineup1 = createLineup("team1", "race1", score = 43.0)
+        coEvery { lineupRepository.getLineup("team1", "race1") } returns lineup1
+
+        setupTransactionMock()
+
+        service.calculateAndSaveLineupsResults(raceResult)
+
+        // New score for VER (20.0) + HAM (15.0) = 35.0
+        // Expected team points: 200.0 - 43.0 + 35.0 = 192.0
+        verify {
+            teamRepository.updateTeamInTransaction(
+                match { it.points[2025] == 192.0 },
+                any()
+            )
+        }
+    }
 }
+

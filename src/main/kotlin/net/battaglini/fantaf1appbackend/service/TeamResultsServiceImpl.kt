@@ -41,8 +41,16 @@ class TeamResultsServiceImpl(
             cursor = teamsPair.last().first
 
             teamsPair.map { pair ->
-                val lineupResults = calculateLineupResult(pair.second.teamId, raceWeekendResult.raceId, driverPoints)
-                val updatedTeam = calculateTeamPoints(pair.second, lineupResults?.score ?: 0.0)
+                val (lineupResults, previousScore) = calculateLineupResult(
+                    pair.second.teamId,
+                    raceWeekendResult.raceId,
+                    driverPoints
+                )
+                val updatedTeam = calculateTeamPoints(
+                    pair.second,
+                    previousScore,
+                    lineupResults?.score ?: 0.0
+                )
 
                 return@map Pair(updatedTeam, lineupResults)
             }.forEach { teamAndLineupMap[it.first] = it.second }
@@ -68,7 +76,7 @@ class TeamResultsServiceImpl(
         teamId: String,
         raceId: String,
         driverPoints: Map<String, Double>
-    ): Lineup? {
+    ): Pair<Lineup?, Double> {
         val lineup = lineupRepository.getLineup(teamId, raceId)
         if (lineup == null) {
             LOGGER.warn(
@@ -76,24 +84,32 @@ class TeamResultsServiceImpl(
                 teamId,
                 raceId
             )
-            return null
+            return Pair(null, 0.0)
         }
 
+        val previousScore = lineup.score ?: 0.0
         val score = calculatePointsPerLineup(lineup, driverPoints)
-        return lineup.copy(
+        val updatedLineup = lineup.copy(
             score = score,
             updatedAt = clock.now(),
             version = lineup.version + 1
         )
+        return Pair(updatedLineup, previousScore)
     }
 
-    private suspend fun calculateTeamPoints(team: Team, lineupScore: Double): Team {
+    private suspend fun calculateTeamPoints(
+        team: Team,
+        previousLineupScore: Double,
+        newLineupScore: Double
+    ): Team {
         val currentYear = clock.now().toLocalDateTime(timeZone).year
         val teamPoints = team.points.toMutableMap()
-        teamPoints[currentYear] = teamPoints.getOrDefault(currentYear, 0.0) + lineupScore
+        val currentPoints = teamPoints.getOrDefault(currentYear, 0.0)
+        val updatedPoints = currentPoints - previousLineupScore + newLineupScore
+        teamPoints[currentYear] = String.format(Locale.US, "%.1f", updatedPoints).toDouble()
 
         return team.copy(
-            points = teamPoints.toMutableMap(),
+            points = teamPoints,
             updatedAt = clock.now(),
         )
     }
