@@ -1,6 +1,8 @@
 package net.battaglini.fantaf1appbackend.controller
 
 import kotlinx.datetime.plus
+import net.battaglini.fantaf1appbackend.exception.InternalServerException
+import net.battaglini.fantaf1appbackend.exception.InvalidRequestException
 import net.battaglini.fantaf1appbackend.model.request.RecalculateRaceWeekendRequest
 import net.battaglini.fantaf1appbackend.model.response.RecalculateRaceWeekendResponse
 import net.battaglini.fantaf1appbackend.model.request.GenerateRaceRecapRequest
@@ -21,6 +23,7 @@ class RaceWeekendsController(
     private val raceWeekendService: RaceWeekendService
 ) {
     @PostMapping("/seed")
+    @PreAuthorize("hasRole('ADMIN')")
     suspend fun seedRaceWeekends() {
         try {
             raceWeekendService.seedRaceWeekends()
@@ -29,14 +32,15 @@ class RaceWeekendsController(
         }
     }
 
-    @PostMapping("open-lineup")
+    @PostMapping("/open-lineup")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RACE_WEEKEND_MANAGER')")
     suspend fun openRaceWeekendLineup(@RequestBody request: OpenRaceWeekendLineupRequest): String {
         try {
             var instant = Clock.System.now()
             if (request.delay != null) {
-                request.delayUnit?.let { instant = instant.plus(request.delay, it) } ?: throw AssertionError("delayUnit cannot be null")
+                request.delayUnit?.let { instant = instant.plus(request.delay, it) } ?: throw InvalidRequestException("delayUnit cannot be null")
             }
-            val raceName = raceWeekendService.setRaceWeekendLineupOpenDateTime(request.raceId, instant) ?: return "Could not update lineup date for raceId=${request.raceId}"
+            val raceName = raceWeekendService.setRaceWeekendLineupOpenDateTime(request.raceId, instant) ?: throw InternalServerException("Could not update lineup date for raceId=${request.raceId}")
             return raceName
         } catch (e: Exception) {
             return "Could not update lineup date for raceId=${request.raceId}. ${e.message}"
@@ -44,6 +48,7 @@ class RaceWeekendsController(
     }
 
     @PostMapping("/recap")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RACE_WEEKEND_MANAGER')")
     suspend fun generateRaceRecaps(@RequestBody request: GenerateRaceRecapRequest): GenerateRaceRecapResponse {
         try {
             val recaps = raceWeekendService.generateRaceRecap(request.raceIds)

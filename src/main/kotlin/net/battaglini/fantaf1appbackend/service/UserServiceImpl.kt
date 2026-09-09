@@ -13,13 +13,17 @@ class UserServiceImpl(
     private val userRepository: UserRepository,
     private val teamRepository: TeamRepository
 ) : UserService {
-    override suspend fun getUsersByLobbyId(lobbyId: String): Flow<User> {
-        val teamsInLobby = teamRepository.getTeamsByLobbyId(lobbyId)
+    override suspend fun getUsersWithTeamIdByLobbyId(lobbyId: String): Flow<Pair<String, User>> {
+        val teamsInLobby = teamRepository.getTeamsByLobbyId(lobbyId).toList()
 
         val ownerIds = teamsInLobby.map { team ->
             team.ownerId
-        }.toList()
+        }
 
-        return userRepository.getUsersByIds(ownerIds)
+        val users = userRepository.getUsersByIds(ownerIds)
+        return users.map { user ->
+            val team = teamsInLobby.first { it.ownerId == user.userId }
+            Pair(team.teamId, user)
+        }
     }
 }
