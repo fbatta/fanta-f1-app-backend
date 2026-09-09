@@ -13,5 +13,5 @@ interface UserService {
      * @param lobbyId The unique identifier of the lobby.
      * @return A [Flow] of [User] objects.
      */
-    suspend fun getUsersByLobbyId(lobbyId: String): Flow<User>
+    suspend fun getUsersWithTeamIdByLobbyId(lobbyId: String): Flow<Pair<String, User>>
 }

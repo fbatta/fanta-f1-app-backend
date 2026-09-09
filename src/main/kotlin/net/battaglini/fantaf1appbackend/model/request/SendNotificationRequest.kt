@@ -8,5 +8,5 @@ data class SendNotificationRequest(
     @JsonSerialize(using = UserNotificationType.Companion.Serializer::class)
     @JsonDeserialize(using = UserNotificationType.Companion.Deserializer::class)
     val type: UserNotificationType,
-    val raceId: String?
+    val raceId: String
 )

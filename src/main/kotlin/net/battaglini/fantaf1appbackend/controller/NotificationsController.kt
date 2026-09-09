@@ -18,10 +18,6 @@ class NotificationsController(
 ) {
     @PostMapping(path = ["/race-weekend-results-available/send"])
     suspend fun sendRaceWeekendResultsAvailableNotification(@RequestBody body: SendNotificationRequest): String {
-        if (body.raceId == null) {
-            throw InvalidRequestException("raceId is required")
-        }
-
         val result = raceWeekendResultRepository.findRaceWeekendResult(body.raceId)
             ?: throw NotFoundException("Race weekend results for ${body.raceId} not found")
 

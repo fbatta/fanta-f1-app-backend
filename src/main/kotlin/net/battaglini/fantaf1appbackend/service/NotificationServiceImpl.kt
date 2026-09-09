@@ -9,70 +9,69 @@ import kotlinx.coroutines.flow.toList
 import net.battaglini.fantaf1appbackend.enums.UserNotificationType
 import net.battaglini.fantaf1appbackend.model.RaceWeekend
 import net.battaglini.fantaf1appbackend.model.RaceWeekendResult
+import net.battaglini.fantaf1appbackend.model.notification.RaceWeekendResultsAvailableNotificationData
 import net.battaglini.fantaf1appbackend.repository.LobbyRepository
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import kotlin.concurrent.atomics.AtomicInt
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
 import kotlin.concurrent.atomics.incrementAndFetch
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
+@OptIn(ExperimentalAtomicApi::class, ExperimentalUuidApi::class)
 @Service
 class NotificationServiceImpl(
     private val firebaseMessaging: FirebaseMessaging,
     private val lobbyRepository: LobbyRepository,
     private val userService: UserService
 ) : NotificationService {
-    @OptIn(ExperimentalAtomicApi::class)
     override suspend fun processRaceWeekendCalculationCompletedNotification(raceWeekendResult: RaceWeekendResult): Int {
-        return broadcastNotification {
+        return broadcastNotification { teamId, lobbyId, _ ->
             NotificationContent(
                 title = "${raceWeekendResult.raceName} results available",
                 body = "Results for ${raceWeekendResult.raceName} are now available, click here to check them out!",
                 type = UserNotificationType.RACE_WEEKEND_RESULTS_AVAILABLE,
-                data = mapOf("raceId" to raceWeekendResult.raceId)
+                data =RaceWeekendResultsAvailableNotificationData(raceWeekendResult.raceId, teamId, lobbyId, raceWeekendResult.raceName,
+                    Uuid.generateV4().toString()).toMap()
             )
         }
     }
 
     @OptIn(ExperimentalAtomicApi::class)
     override suspend fun sendLineupOpenNotification(raceWeekend: RaceWeekend): Int {
-        return broadcastNotification {
+        return broadcastNotification { _, _, _ ->
             NotificationContent(
                 title = "Lineup for ${raceWeekend.raceName} is now OPEN!",
                 body = "The lineup for the ${raceWeekend.raceName} is now open. Don't forget to set your team before it closes!",
-                type = UserNotificationType.LINEUP_OPEN,
-                data = mapOf("raceId" to raceWeekend.raceId)
+                type = UserNotificationType.LINEUP_OPEN
             )
         }
     }
 
-    @OptIn(ExperimentalAtomicApi::class)
     override suspend fun sendLineupCloseReminderNotification(raceWeekend: RaceWeekend, hoursBefore: Long): Int {
-        return broadcastNotification {
+        return broadcastNotification { _, _, _ ->
             NotificationContent(
                 title = "Lineup for ${raceWeekend.raceName} is closing soon!",
                 body = "Lineup for ${raceWeekend.raceName} closes in $hoursBefore hours! Don't forget to set your team!",
-                type = UserNotificationType.LINEUP_CLOSE_REMINDER,
-                data = mapOf("raceId" to raceWeekend.raceId)
+                type = UserNotificationType.LINEUP_CLOSE_REMINDER
+            )
+        }
+    }
+
+    override suspend fun sendLineupClosedNotification(raceWeekend: RaceWeekend): Int {
+        return broadcastNotification { _, _, _ ->
+            NotificationContent(
+                title = "Lineup for ${raceWeekend.raceName} is now CLOSED!",
+                body = "The lineup for the ${raceWeekend.raceName} is now closed. Good luck to your team!",
+                type = UserNotificationType.LINEUP_CLOSED
             )
         }
     }
 
     @OptIn(ExperimentalAtomicApi::class)
-    override suspend fun sendLineupClosedNotification(raceWeekend: RaceWeekend): Int {
-        return broadcastNotification {
-            NotificationContent(
-                title = "Lineup for ${raceWeekend.raceName} is now CLOSED!",
-                body = "The lineup for the ${raceWeekend.raceName} is now closed. Good luck to your team!",
-                type = UserNotificationType.LINEUP_CLOSED,
-                data = mapOf("raceId" to raceWeekend.raceId)
-            )
-        }
-    }
-
-    @OptIn(ExperimentalAtomicApi::class, ExperimentalCoroutinesApi::class)
     private suspend fun broadcastNotification(
-        createContent: (net.battaglini.fantaf1appbackend.model.User) -> NotificationContent
+        createContent: (String, String, net.battaglini.fantaf1appbackend.model.User) -> NotificationContent
     ): Int {
         var cursor: DocumentSnapshot? = null
         val notificationsSent = AtomicInt(0)
@@ -86,12 +85,12 @@ class NotificationServiceImpl(
             cursor = lobbies.last().first
 
             coroutineScope {
-                for (lobby in lobbies.map { it.second }) {
+                for ((lobbyId) in lobbies.map { it.second }) {
                     launch {
-                        userService.getUsersByLobbyId(lobby.lobbyId).collect { user ->
-                            launch {
-                                val content = createContent(user)
-                                sendToUserTokens(user, content, notificationsSent)
+                        userService.getUsersWithTeamIdByLobbyId(lobbyId).collect { teamUserPair ->
+                            this@launch.launch {
+                                val content = createContent(teamUserPair.first, lobbyId, teamUserPair.second)
+                                sendToUserTokens(teamUserPair.second, content, notificationsSent)
                             }
                         }
                     }
@@ -118,10 +117,10 @@ class NotificationServiceImpl(
         }
 
         coroutineScope {
-            for (token in user.deviceRegistrationTokens) {
+            for ((key) in user.deviceRegistrationTokens) {
                 launch {
                     val message = Message.builder()
-                        .setToken(token.key)
+                        .setFid(key)
                         .setNotification(
                             Notification.builder()
                                 .setTitle(content.title)
@@ -158,7 +157,7 @@ class NotificationServiceImpl(
         val title: String,
         val body: String,
         val type: UserNotificationType,
-        val data: Map<String, String> = emptyMap()
+        val data: Map<String, String>? = emptyMap()
     )
 
     companion object {

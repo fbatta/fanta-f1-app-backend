@@ -92,7 +92,7 @@ class NotificationServiceTest {
             coEvery { lobbyRepository.getLobbies(mockSnapshot1, any()) } returns emptyFlow()
 
             val user1 = createUser("user1", mapOf("token1" to "token1_val"))
-            coEvery { userService.getUsersByLobbyId("lobby1") } returns flowOf(user1)
+            coEvery { userService.getUsersWithTeamIdByLobbyId("lobby1") } returns flowOf(Pair("team1", user1))
 
             val mockFuture = mockk<ApiFuture<String>>()
             every { mockFuture.get() } returns "message_id"
@@ -115,7 +115,7 @@ class NotificationServiceTest {
             coEvery { lobbyRepository.getLobbies(mockSnapshot1, any()) } returns emptyFlow()
 
             val user1 = createUser("user1", mapOf("token1" to "token1_val"))
-            coEvery { userService.getUsersByLobbyId("lobby1") } returns flowOf(user1)
+            coEvery { userService.getUsersWithTeamIdByLobbyId("lobby1") } returns flowOf(Pair("team1", user1))
 
             val mockFuture = mockk<ApiFuture<String>>()
             every { mockFuture.get() } returns "message_id"
@@ -138,7 +138,7 @@ class NotificationServiceTest {
             coEvery { lobbyRepository.getLobbies(mockSnapshot1, any()) } returns emptyFlow()
 
             val user1 = createUser("user1", mapOf("token1" to "token1_val"))
-            coEvery { userService.getUsersByLobbyId("lobby1") } returns flowOf(user1)
+            coEvery { userService.getUsersWithTeamIdByLobbyId("lobby1") } returns flowOf(Pair("team1", user1))
 
             val mockFuture = mockk<ApiFuture<String>>()
             every { mockFuture.get() } returns "message_id"
@@ -170,8 +170,8 @@ class NotificationServiceTest {
             val user2 = createUser("user2", mapOf("token2" to "token2_val", "token3" to "token3_val"))
             val user3 = createUser("user3", emptyMap()) // No tokens
 
-            coEvery { userService.getUsersByLobbyId("lobby1") } returns flowOf(user1, user2)
-            coEvery { userService.getUsersByLobbyId("lobby2") } returns flowOf(user3)
+            coEvery { userService.getUsersWithTeamIdByLobbyId("lobby1") } returns flowOf(Pair("team1", user1), Pair("team2", user2))
+            coEvery { userService.getUsersWithTeamIdByLobbyId("lobby2") } returns flowOf(Pair("team3", user3))
 
             val mockFuture = mockk<ApiFuture<String>>()
             every { mockFuture.get() } returns "message_id"
@@ -196,7 +196,7 @@ class NotificationServiceTest {
             coEvery { lobbyRepository.getLobbies(mockSnapshot, any()) } returns emptyFlow()
 
             val user = createUser("user1", mapOf("token1" to "token1_val", "token2" to "token2_val"))
-            coEvery { userService.getUsersByLobbyId("lobby1") } returns flowOf(user)
+            coEvery { userService.getUsersWithTeamIdByLobbyId("lobby1") } returns flowOf(Pair("team1", user))
 
             val successFuture = mockk<ApiFuture<String>>()
             every { successFuture.get() } returns "message_id"
@@ -225,7 +225,7 @@ class NotificationServiceTest {
         coEvery { lobbyRepository.getLobbies(mockSnapshot, any()) } returns emptyFlow()
 
         val user = createUser("user1", emptyMap())
-        coEvery { userService.getUsersByLobbyId("lobby1") } returns flowOf(user)
+        coEvery { userService.getUsersWithTeamIdByLobbyId("lobby1") } returns flowOf(Pair("team1", user))
 
         val sentCount = notificationService.processRaceWeekendCalculationCompletedNotification(raceResult)
 
